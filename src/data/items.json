@@ -1,0 +1,108 @@
+[
+  {
+    "handle": "rifle",
+    "alt_handle": "hunting rifle",
+    "description": "a battered mosin nagant rifle",
+    "details": {
+      "phrase": "you can just make out initials carved in the stock \"V.L.\""
+    },
+    "location": "apartment_living_room"
+  },
+  {
+    "handle": "box",
+    "alt_handle": "stationery box",
+    "description": "That is one fine lookin' box.",
+    "details": {
+      "phrase": "it's got some kind of ornate design on the side."
+    },
+    "location": "apartment_living_room",
+    "container": true,
+    "open": false,
+    "transparent": false,
+    "mobile": false,
+    "locked": false
+  },
+  {
+    "handle": "letter",
+    "description": "an interesting looking letter... you should probably read it.",
+    "letter": true,
+    "inside": "box",
+    "details": {
+      "phrase": "\nWelcome to Sam Vary's FIELDS OF PERIL, an interactive text-based adventure game that will thrill you to the marrow.\n\nHERE are some important tips you might want to keep in mind:\n\n* When you enter a location for the first time, you will see a description that only appears once. Any clues about objects you can pick up are usually going to be mentioned here. However, some items or clues may be discovered by typing 'look' or 'look closer'.\n\n* There is an important container system in the game - boxes, treasure chests and the like can be opened and searched for important items and clues.\n\n* Access points are a system in the game that must be solved in order to proceed to certain locations. Some access points are keypads, which must be opened with the correct numerical code, and some access points are locked doors that must be opened by discovering the correct key somewhere in the game.\n\n* Certain riddles may contain keypad codes by translating the answer into numbers, i.e. A = 1, B = 2, etc.\n\n* You may encounter characters in the game that will give you important items, keypad codes, or keys if you answer a question that they ask you correctly, or you give them an item that they want that you've discovered somewhere else in the game.\n\n* Type 'help' or 'h' for a list of available in-game commands.\n\n* This is more Monkey Island than King's Quest: You can't die, you can only get stuck.\n\n* To get the game rolling, you'll want to open the wooden chest in the apartment living room, check inside of the wooden chest for clues.\n\n\n GOOD LUCK! :)"
+    }
+  },
+  {
+    "handle": "wooden chest",
+    "alt_handle": "chest",
+    "description": "a simple wooden chest with gold leaf",
+    "details": {
+      "phrase": "it is carved ornately"
+    },
+    "location": "apartment_living_room",
+    "container": true,
+    "open": false,
+    "transparent": false
+  },
+  {
+    "handle": "skeleton key",
+    "alt_handle": "key",
+    "inside": "treasure chest",
+    "description": "a skeleton key",
+    "details": {
+      "phrase": "not much else to see."
+    },
+    "code": 4918
+  },
+  {
+    "handle": "parchment",
+    "letter": true,
+    "inside": "wooden chest",
+    "description": "a charred bit of parchment with some writing on it.",
+    "details": {
+      "phrase": "To open the apartment entrance, please type 'use keypad' and enter the answer to the Ultimate Question of Life, the Universe, and Everything."
+    }
+  },
+  {
+    "handle": "bookcase",
+    "description": "that bookcase looks a little odd...",
+    "mobile": false,
+    "location": "apartment_living_room",
+    "direction": "east"
+  },
+  {
+    "handle": "fireplace",
+    "description": "an imposing stone fireplace.",
+    "mobile": false,
+    "location": "apartment_living_room"
+  },
+  {
+    "handle": "keypad",
+    "mobile": false,
+    "description": "It's got the numbers 0-9 on it.",
+    "code": 42,
+    "location": "apartment_living_room",
+    "direction": "west"
+  },
+  {
+    "handle": "cabinet",
+    "alt_handle": "medicine cabinet",
+    "mobile": false,
+    "description": "a basic medicine cabinet",
+    "details": {
+      "phrase": "not much else to see"
+    },
+    "location": "bathroom",
+    "container": true,
+    "open": false,
+    "transparent": false
+  },
+  {
+    "handle": "toothpaste",
+    "letter": true,
+    "inside": "cabinet",
+    "description": "a tube of toothpaste",
+    "details": {
+      "phrase": "the back of the tube says 'to be used in case of emergency monster gingivitis'"
+    }
+  }
+]

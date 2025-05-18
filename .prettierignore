@@ -1,0 +1,37 @@
+# Node and dependency folders
+node_modules
+android
+ios
+build
+dist
+expo-build
+
+# Version control
+.git
+.husky
+
+# System files
+.DS_Store
+
+# Output
+*.log
+*.lock
+
+# Public/static assets
+public/*
+assets/*
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.mp4
+*.mp3
+
+# Optional: Ignore bundled or minified files
+*.min.js
+*.bundle.js
+
+# Ignore compiled or temporary files
+coverage
+temp
