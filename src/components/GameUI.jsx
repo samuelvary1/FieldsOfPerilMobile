@@ -7,6 +7,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import {evaluateCommand} from '../engine/GameEngine';
 import items from '../data/items.json';
@@ -39,15 +40,16 @@ const GameUI = () => {
     });
   }, []);
 
-  const handleSubmit = () => {
-    if (!input.trim() || !game) {
+  const handleCommand = cmd => {
+    if (!cmd.trim() || !game) {
       return;
     }
-
-    const response = evaluateCommand(input.trim(), game, setGame);
-    setLog(prev => [...prev, `> ${input}`, response]);
+    const response = evaluateCommand(cmd.trim(), game, setGame);
+    setLog(prev => [...prev, `> ${cmd}`, response]);
     setInput('');
   };
+
+  const handleSubmit = () => handleCommand(input);
 
   if (!game) {
     return <Text style={styles.loading}>Loading...</Text>;
@@ -57,6 +59,8 @@ const GameUI = () => {
   const initialDesc = !currentRoom.been_before
     ? currentRoom.first_time_message
     : currentRoom.header;
+
+  const directions = Object.keys(currentRoom.rooms || {});
 
   return (
     <KeyboardAvoidingView
@@ -76,6 +80,71 @@ const GameUI = () => {
         ))}
       </ScrollView>
 
+      {/* Directions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Go:</Text>
+        <View style={styles.buttonRow}>
+          {directions.map(dir => (
+            <TouchableOpacity
+              key={dir}
+              style={styles.button}
+              onPress={() => handleCommand(`go ${dir}`)}>
+              <Text style={styles.buttonText}>{dir.toUpperCase()}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Room Items */}
+      {currentRoom.items?.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Items here:</Text>
+          <View style={styles.buttonRow}>
+            {currentRoom.items.map(item => (
+              <TouchableOpacity
+                key={item}
+                style={styles.button}
+                onPress={() => handleCommand(`take ${item}`)}>
+                <Text style={styles.buttonText}>Take {item}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Inventory */}
+      {game.player.inventory.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Inventory:</Text>
+          <View style={styles.buttonRow}>
+            {game.player.inventory.map(item => (
+              <TouchableOpacity
+                key={item}
+                style={styles.button}
+                onPress={() => handleCommand(`use ${item}`)}>
+                <Text style={styles.buttonText}>Use {item}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Quick Actions */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Quick Commands:</Text>
+        <View style={styles.buttonRow}>
+          {['look', 'inventory', 'help'].map(cmd => (
+            <TouchableOpacity
+              key={cmd}
+              style={styles.button}
+              onPress={() => handleCommand(cmd)}>
+              <Text style={styles.buttonText}>{cmd}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Command input box (still available) */}
       <TextInput
         style={styles.input}
         value={input}
@@ -127,5 +196,30 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 18,
     textAlign: 'center',
+  },
+  section: {
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    color: '#ccc',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  button: {
+    backgroundColor: '#3e3e3e',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });
