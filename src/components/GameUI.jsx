@@ -56,11 +56,10 @@ const GameUI = () => {
   }
 
   const currentRoom = game.rooms[game.player.location];
+  const directions = Object.keys(currentRoom.rooms || {});
   const initialDesc = !currentRoom.been_before
     ? currentRoom.first_time_message
     : currentRoom.header;
-
-  const directions = Object.keys(currentRoom.rooms || {});
 
   return (
     <KeyboardAvoidingView
@@ -80,16 +79,16 @@ const GameUI = () => {
         ))}
       </ScrollView>
 
-      {/* Directions */}
+      {/* Movement Buttons */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Go:</Text>
+        <Text style={styles.sectionTitle}>Movement:</Text>
         <View style={styles.buttonRow}>
           {directions.map(dir => (
             <TouchableOpacity
               key={dir}
               style={styles.button}
               onPress={() => handleCommand(`go ${dir}`)}>
-              <Text style={styles.buttonText}>{dir.toUpperCase()}</Text>
+              <Text style={styles.buttonText}>⬆ {dir.toUpperCase()}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -98,14 +97,14 @@ const GameUI = () => {
       {/* Room Items */}
       {currentRoom.items?.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Items here:</Text>
+          <Text style={styles.sectionTitle}>Items in Room:</Text>
           <View style={styles.buttonRow}>
             {currentRoom.items.map(item => (
               <TouchableOpacity
                 key={item}
                 style={styles.button}
                 onPress={() => handleCommand(`take ${item}`)}>
-                <Text style={styles.buttonText}>Take {item}</Text>
+                <Text style={styles.buttonText}>📦 Take {item}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -122,38 +121,43 @@ const GameUI = () => {
                 key={item}
                 style={styles.button}
                 onPress={() => handleCommand(`use ${item}`)}>
-                <Text style={styles.buttonText}>Use {item}</Text>
+                <Text style={styles.buttonText}>🎒 Use {item}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
       )}
 
-      {/* Quick Actions */}
+      {/* Quick Commands */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Commands:</Text>
+        <Text style={styles.sectionTitle}>Actions:</Text>
         <View style={styles.buttonRow}>
           {['look', 'inventory', 'help'].map(cmd => (
             <TouchableOpacity
               key={cmd}
               style={styles.button}
               onPress={() => handleCommand(cmd)}>
-              <Text style={styles.buttonText}>{cmd}</Text>
+              <Text style={styles.buttonText}>{cmd.toUpperCase()}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      {/* Command input box (still available) */}
-      <TextInput
-        style={styles.input}
-        value={input}
-        onChangeText={setInput}
-        placeholder="Enter command..."
-        placeholderTextColor="#888"
-        onSubmitEditing={handleSubmit}
-        returnKeyType="done"
-      />
+      {/* Command Input */}
+      <View style={styles.inputRow}>
+        <TextInput
+          style={styles.input}
+          value={input}
+          onChangeText={setInput}
+          placeholder="Type a command..."
+          placeholderTextColor="#888"
+          onSubmitEditing={handleSubmit}
+          returnKeyType="done"
+        />
+        <TouchableOpacity style={styles.sendButton} onPress={handleSubmit}>
+          <Text style={styles.sendButtonText}>▶</Text>
+        </TouchableOpacity>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -164,8 +168,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1e1e1e',
-    padding: 20,
     paddingTop: 50,
+    paddingHorizontal: 16,
   },
   output: {
     flex: 1,
@@ -181,29 +185,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Courier',
     marginBottom: 4,
   },
-  input: {
-    height: 50,
-    backgroundColor: '#2e2e2e',
-    color: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#555',
-  },
-  loading: {
-    marginTop: 60,
-    color: '#aaa',
-    fontSize: 18,
-    textAlign: 'center',
-  },
   section: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   sectionTitle: {
     color: '#ccc',
     fontSize: 14,
     marginBottom: 4,
+    marginTop: 8,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -221,5 +210,40 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontSize: 14,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: Platform.OS === 'ios' ? 20 : 12,
+  },
+  input: {
+    flex: 1,
+    height: 48,
+    backgroundColor: '#2e2e2e',
+    color: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  sendButton: {
+    backgroundColor: '#007BFF',
+    marginLeft: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loading: {
+    marginTop: 60,
+    color: '#aaa',
+    fontSize: 18,
+    textAlign: 'center',
   },
 });

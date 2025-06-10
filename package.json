@@ -12,9 +12,16 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md,yml}\""
   },
   "dependencies": {
+    "compromise": "^14.14.4",
+    "fastest-levenshtein": "^1.0.16",
+    "fuse.js": "^7.1.0",
+    "inkjs": "^2.3.2",
     "js-yaml": "^4.1.0",
+    "lodash": "^4.17.21",
     "react": "19.0.0",
-    "react-native": "0.79.2"
+    "react-native": "0.79.2",
+    "react-native-vector-icons": "^10.2.0",
+    "xstate": "^5.19.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
