@@ -6,6 +6,14 @@ export function evaluateCommand(input, game, setGame) {
 
   const location = game.rooms[game.player.location];
   let output = '';
+  const defaultItemResponses = {
+    take: "That thing won't budge.",
+    use: "You can't think of a way to use that right now.",
+    talk: "It doesn't seem to have anything to say.",
+    open: "You can't open that.",
+    read: 'There’s nothing to read here.',
+    examine: "There's nothing particularly interesting.",
+  };
 
   switch (command) {
     case 'look':
