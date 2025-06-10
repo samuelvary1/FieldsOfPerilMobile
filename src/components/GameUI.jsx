@@ -93,17 +93,23 @@ const GameUI = () => {
         ))}
       </ScrollView>
 
-      {/* Movement Buttons */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Movement:</Text>
         <View style={styles.buttonRow}>
           {directions.map(dir => (
             <TouchableOpacity
               key={dir}
-              style={styles.buttonIcon}
+              style={[
+                styles.buttonIcon,
+                {
+                  backgroundColor: currentRoom.rooms?.[dir]
+                    ? '#3e3e3e'
+                    : '#555',
+                },
+              ]}
               onPress={() => handleCommand(`go ${dir}`)}>
               <Icon
-                name={directionIcons[dir] || 'arrows'}
+                name={directionIcons[dir] || 'compass'}
                 size={16}
                 color="#fff"
               />
@@ -113,7 +119,6 @@ const GameUI = () => {
         </View>
       </View>
 
-      {/* Room Items */}
       {currentRoom.items?.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Items in Room:</Text>
@@ -131,7 +136,6 @@ const GameUI = () => {
         </View>
       )}
 
-      {/* Inventory */}
       {game.player.inventory.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Inventory:</Text>
@@ -149,7 +153,6 @@ const GameUI = () => {
         </View>
       )}
 
-      {/* Quick Commands */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Actions:</Text>
         <View style={styles.buttonRow}>
@@ -177,7 +180,6 @@ const GameUI = () => {
         </View>
       </View>
 
-      {/* Recent Commands */}
       {recentCommands.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Commands:</Text>
@@ -194,7 +196,6 @@ const GameUI = () => {
         </View>
       )}
 
-      {/* Command Input */}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}

@@ -167,6 +167,7 @@ export function evaluateCommand(input, game, setGame) {
     }
 
     case 'go':
+      console.log('direction', noun);
       output = handleMovement(noun, game, setGame);
       break;
 
