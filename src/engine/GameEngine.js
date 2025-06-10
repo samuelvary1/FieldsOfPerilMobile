@@ -3,11 +3,6 @@ import Fuse from 'fuse.js';
 import get from 'lodash/get';
 import {createMachine, interpret} from 'xstate';
 import {Story} from 'inkjs';
-// If using Ink, make sure you've compiled a story into JSON
-// import storyContent from '../stories/story.json'; // Optional
-
-// Optional: Ink integration
-// const story = new Story(storyContent);
 
 export function evaluateCommand(input, game, setGame) {
   const location = game.rooms[game.player.location];
@@ -24,20 +19,68 @@ export function evaluateCommand(input, game, setGame) {
     examine: "There's nothing particularly interesting.",
   };
 
-  // Parse command using compromise
+  // Command alias map
+  const aliasMap = {
+    grab: 'take',
+    'pick up': 'take',
+    pickup: 'take',
+    walk: 'go',
+    head: 'go',
+    move: 'go',
+    inspect: 'examine',
+    check: 'examine',
+    talk: 'talk',
+    speak: 'talk',
+    look: 'look',
+    see: 'look',
+    hint: 'hint',
+  };
+
+  // Handle compound commands
   const cleanedInput = input.toLowerCase().trim();
-  const doc = nlp(cleanedInput);
-  const command = doc.verbs().out('array')[0] || cleanedInput.split(/\s+/)[0];
-  const nounParts = cleanedInput
+  const subCommands = cleanedInput
+    .split(/(?:\s+and\s+|\s*;\s*|\s+then\s+)/)
+    .map(cmd => cmd.trim())
+    .filter(Boolean);
+
+  for (let subCmd of subCommands) {
+    const result = evaluateSingleCommand(
+      subCmd,
+      game,
+      setGame,
+      aliasMap,
+      stopWords,
+      defaultItemResponses,
+    );
+    output += result + '\n';
+  }
+
+  return output.trim();
+}
+
+function evaluateSingleCommand(
+  input,
+  game,
+  setGame,
+  aliasMap,
+  stopWords,
+  defaultItemResponses,
+) {
+  const location = game.rooms[game.player.location];
+  let output = '';
+
+  const doc = nlp(input);
+  let command = doc.verbs().out('array')[0] || input.split(/\s+/)[0];
+  command = aliasMap[command] || command;
+
+  const nounParts = input
     .split(/\s+/)
     .slice(1)
     .filter(w => !stopWords.includes(w));
   const noun = nounParts.join(' ');
 
-  // Normalize plural
   const normalize = word => (word?.endsWith('s') ? word.slice(0, -1) : word);
 
-  // Fuzzy item matching with Fuse
   const fuse = new Fuse(Object.values(game.items), {
     keys: ['handle', 'alt_handle'],
     threshold: 0.3,
@@ -51,7 +94,6 @@ export function evaluateCommand(input, game, setGame) {
     if (exact) {
       return exact;
     }
-
     const result = fuse.search(normalized);
     return result.length > 0 ? result[0].item : null;
   };
@@ -61,20 +103,16 @@ export function evaluateCommand(input, game, setGame) {
     if (!item) {
       return `You don't see a "${itemName}" here.`;
     }
-
-    // Semantic example: block actions if item is fixed
     if (action === 'take' && get(item, 'mobile') === false) {
-      return "That thing won't budge.";
+      return defaultItemResponses.take;
     }
-
-    return (
+    const feedback =
       item.responses?.[action] ||
       defaultItemResponses[action] ||
-      'Nothing happens.'
-    );
+      'Nothing happens.';
+    return `You ${action} the ${item.handle}. ${feedback}`;
   };
 
-  // Optional: XState character example
   const guardDialogue = createMachine({
     id: 'guard',
     initial: 'idle',
@@ -100,6 +138,14 @@ export function evaluateCommand(input, game, setGame) {
 
   switch (command) {
     case 'look':
+      if (noun) {
+        // Redirect "look at box", "look in chest", etc. to examine
+        command = 'examine';
+        output = performItemAction(noun, command);
+      } else {
+        output = location.description || 'You look around.';
+      }
+      break;
     case 'l':
       output = location.description || 'You look around.';
       break;
@@ -115,6 +161,10 @@ export function evaluateCommand(input, game, setGame) {
         : "You're not carrying anything.";
       break;
 
+    case 'hint':
+      output = location.hint || "You don't notice anything in particular.";
+      break;
+
     case 'help':
     case 'h':
       output = game.messages.help;
@@ -125,10 +175,10 @@ export function evaluateCommand(input, game, setGame) {
     case 'open':
     case 'read':
     case 'examine':
+    case 'take':
       if (!noun) {
         output = `What do you want to ${command}?`;
       } else {
-        // Optional: trigger guard dialogue by name
         if (noun.includes('guard')) {
           guardService.send('TALK');
         } else {
@@ -136,11 +186,6 @@ export function evaluateCommand(input, game, setGame) {
         }
       }
       break;
-
-    // Optional: Ink story branch
-    // case 'story':
-    //   output = story.Continue();
-    //   break;
 
     default:
       output = "I don't understand that command.";

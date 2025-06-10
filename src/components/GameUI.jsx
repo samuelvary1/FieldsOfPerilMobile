@@ -9,6 +9,7 @@ import {
   Platform,
   TouchableOpacity,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import {evaluateCommand} from '../engine/GameEngine';
 import items from '../data/items.json';
 import locations from '../data/locations.json';
@@ -17,6 +18,7 @@ const GameUI = () => {
   const [log, setLog] = useState([]);
   const [input, setInput] = useState('');
   const [game, setGame] = useState(null);
+  const [recentCommands, setRecentCommands] = useState([]);
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ const GameUI = () => {
       items: itemMap,
       player: {location: 'apartment_living_room', inventory: []},
       messages: {
-        help: 'Available commands: go, look, take, open, use, examine, read, inventory, quit',
+        help: 'Available commands: go, look, take, open, use, examine, read, inventory, quit, hint',
       },
     });
   }, []);
@@ -46,6 +48,9 @@ const GameUI = () => {
     }
     const response = evaluateCommand(cmd.trim(), game, setGame);
     setLog(prev => [...prev, `> ${cmd}`, response]);
+    setRecentCommands(prev =>
+      [cmd, ...prev.filter(c => c !== cmd)].slice(0, 5),
+    );
     setInput('');
   };
 
@@ -60,6 +65,15 @@ const GameUI = () => {
   const initialDesc = !currentRoom.been_before
     ? currentRoom.first_time_message
     : currentRoom.header;
+
+  const directionIcons = {
+    north: 'arrow-up',
+    south: 'arrow-down',
+    east: 'arrow-right',
+    west: 'arrow-left',
+    up: 'chevron-up',
+    down: 'chevron-down',
+  };
 
   return (
     <KeyboardAvoidingView
@@ -86,9 +100,14 @@ const GameUI = () => {
           {directions.map(dir => (
             <TouchableOpacity
               key={dir}
-              style={styles.button}
+              style={styles.buttonIcon}
               onPress={() => handleCommand(`go ${dir}`)}>
-              <Text style={styles.buttonText}>⬆ {dir.toUpperCase()}</Text>
+              <Icon
+                name={directionIcons[dir] || 'arrows'}
+                size={16}
+                color="#fff"
+              />
+              <Text style={styles.buttonText}>{dir.toUpperCase()}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -102,9 +121,10 @@ const GameUI = () => {
             {currentRoom.items.map(item => (
               <TouchableOpacity
                 key={item}
-                style={styles.button}
+                style={styles.buttonIcon}
                 onPress={() => handleCommand(`take ${item}`)}>
-                <Text style={styles.buttonText}>📦 Take {item}</Text>
+                <Icon name="archive" size={16} color="#fff" />
+                <Text style={styles.buttonText}>Take {item}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -119,9 +139,10 @@ const GameUI = () => {
             {game.player.inventory.map(item => (
               <TouchableOpacity
                 key={item}
-                style={styles.button}
+                style={styles.buttonIcon}
                 onPress={() => handleCommand(`use ${item}`)}>
-                <Text style={styles.buttonText}>🎒 Use {item}</Text>
+                <Icon name="key" size={16} color="#fff" />
+                <Text style={styles.buttonText}>Use {item}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -132,16 +153,46 @@ const GameUI = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Actions:</Text>
         <View style={styles.buttonRow}>
-          {['look', 'inventory', 'help'].map(cmd => (
+          {['look', 'inventory', 'help', 'hint'].map(cmd => (
             <TouchableOpacity
               key={cmd}
-              style={styles.button}
+              style={styles.buttonIcon}
               onPress={() => handleCommand(cmd)}>
+              <Icon
+                name={
+                  cmd === 'look'
+                    ? 'search'
+                    : cmd === 'help'
+                    ? 'question-circle'
+                    : cmd === 'hint'
+                    ? 'lightbulb-o'
+                    : 'list'
+                }
+                size={16}
+                color="#fff"
+              />
               <Text style={styles.buttonText}>{cmd.toUpperCase()}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
+
+      {/* Recent Commands */}
+      {recentCommands.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Commands:</Text>
+          <View style={styles.buttonRow}>
+            {recentCommands.map(cmd => (
+              <TouchableOpacity
+                key={cmd}
+                style={styles.button}
+                onPress={() => handleCommand(cmd)}>
+                <Text style={styles.buttonText}>{cmd}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Command Input */}
       <View style={styles.inputRow}>
@@ -155,7 +206,7 @@ const GameUI = () => {
           returnKeyType="done"
         />
         <TouchableOpacity style={styles.sendButton} onPress={handleSubmit}>
-          <Text style={styles.sendButtonText}>▶</Text>
+          <Icon name="arrow-circle-right" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -207,9 +258,20 @@ const styles = StyleSheet.create({
     marginRight: 6,
     marginBottom: 6,
   },
+  buttonIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3e3e3e',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginRight: 6,
+    marginBottom: 6,
+  },
   buttonText: {
     color: '#fff',
     fontSize: 14,
+    marginLeft: 6,
   },
   inputRow: {
     flexDirection: 'row',
@@ -234,11 +296,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   loading: {
     marginTop: 60,
