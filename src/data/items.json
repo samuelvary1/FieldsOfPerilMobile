@@ -21,7 +21,7 @@
     "location": "apartment_living_room",
     "properties": {
       "container": true,
-      "open": false,
+      "open": true,
       "transparent": false,
       "mobile": false,
       "locked": false
