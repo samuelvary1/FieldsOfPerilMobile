@@ -246,16 +246,43 @@ export function evaluateCommand(input, game, setGame) {
   return output;
 }
 
-function handleMovement(direction, game, setGame) {
+function handleMovement(rawDirection, game, setGame) {
+  const directionAliases = {
+    up: 'up',
+    climbup: 'up',
+    upstairs: 'up',
+    ascend: 'up',
+
+    down: 'down',
+    climbdown: 'down',
+    downstairs: 'down',
+    descend: 'down',
+
+    north: 'north',
+    south: 'south',
+    east: 'east',
+    west: 'west',
+  };
+
+  // Normalize the input direction: remove spaces and lowercase
+  const cleaned = rawDirection.toLowerCase().replace(/\s+/g, '');
+  const normalizedDirection =
+    directionAliases[cleaned] || rawDirection.toLowerCase().trim();
+
   const currentRoom = game.rooms[game.player.location];
-  const nextRoomKey = currentRoom.rooms?.[direction];
+  const nextRoomKey = currentRoom.rooms?.[normalizedDirection];
 
   if (!nextRoomKey) {
-    return `You can't go ${direction} from here.`;
+    return `You can't go ${normalizedDirection} from here.`;
   }
 
   const nextRoom = game.rooms[nextRoomKey];
 
+  if (!nextRoom) {
+    return `Something blocks your way ${normalizedDirection}.`;
+  }
+
+  // Update game state
   setGame(prevGame => ({
     ...prevGame,
     player: {

@@ -43,6 +43,7 @@ const GameUI = () => {
   }, []);
 
   const handleCommand = cmd => {
+    console.log('handleCommand received:', cmd);
     if (!cmd.trim() || !game) {
       return;
     }
@@ -96,26 +97,22 @@ const GameUI = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Movement:</Text>
         <View style={styles.buttonRow}>
-          {directions.map(dir => (
-            <TouchableOpacity
-              key={dir}
-              style={[
-                styles.buttonIcon,
-                {
-                  backgroundColor: currentRoom.rooms?.[dir]
-                    ? '#3e3e3e'
-                    : '#555',
-                },
-              ]}
-              onPress={() => handleCommand(`go ${dir}`)}>
-              <Icon
-                name={directionIcons[dir] || 'compass'}
-                size={16}
-                color="#fff"
-              />
-              <Text style={styles.buttonText}>{dir.toUpperCase()}</Text>
-            </TouchableOpacity>
-          ))}
+          {directions.map(dir => {
+            console.log('Rendering direction button for:', dir); // ✅ Add this
+            return (
+              <TouchableOpacity
+                key={dir}
+                style={styles.buttonIcon}
+                onPress={() => handleCommand(`go ${dir}`)}>
+                <Icon
+                  name={directionIcons[dir] || 'arrows'}
+                  size={16}
+                  color="#fff"
+                />
+                <Text style={styles.buttonText}>{dir.toUpperCase()}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
