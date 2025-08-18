@@ -4,6 +4,20 @@ import get from 'lodash/get';
 import {createMachine, interpret} from 'xstate';
 
 export function evaluateCommand(input, game, setGame) {
+  const directionWords = [
+    'up',
+    'down',
+    'north',
+    'south',
+    'east',
+    'west',
+    'climbup',
+    'climbdown',
+    'upstairs',
+    'downstairs',
+    'ascend',
+    'descend',
+  ];
   const location = game.rooms[game.player.location];
   let output = '';
 
@@ -17,7 +31,7 @@ export function evaluateCommand(input, game, setGame) {
     'in',
     'with',
     'into',
-    'up',
+    // 'up', // removed so directions are not filtered out
   ];
 
   const defaultItemResponses = {
@@ -128,6 +142,14 @@ export function evaluateCommand(input, game, setGame) {
   const guardService = interpret(guardDialogue).start();
 
   switch (command) {
+    case 'up':
+    case 'down':
+    case 'north':
+    case 'south':
+    case 'east':
+    case 'west':
+      output = handleMovement(command, game, setGame);
+      break;
     case 'look':
     case 'l': {
       if (cleanedInput.startsWith('look in ')) {
@@ -239,7 +261,13 @@ export function evaluateCommand(input, game, setGame) {
     }
 
     default:
-      output = "I don't understand that command.";
+      // Fallback: if the original input is a direction, treat as movement
+      const inputWord = cleanedInput.split(/\s+/)[0];
+      if (directionWords.includes(inputWord)) {
+        output = handleMovement(inputWord, game, setGame);
+      } else {
+        output = "I don't understand that command.";
+      }
       break;
   }
 

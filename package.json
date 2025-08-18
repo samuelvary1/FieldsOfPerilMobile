@@ -12,6 +12,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md,yml}\""
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "compromise": "^14.14.4",
     "fastest-levenshtein": "^1.0.16",
     "fuse.js": "^7.1.0",
