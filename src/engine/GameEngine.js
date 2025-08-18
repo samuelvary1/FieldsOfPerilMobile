@@ -1,132 +1,105 @@
-import nlp from 'compromise';
+// gameEngine.js
 import Fuse from 'fuse.js';
 import get from 'lodash/get';
 import {createMachine, interpret} from 'xstate';
 
-export function evaluateCommand(input, game, setGame) {
-  const directionWords = [
-    'up',
-    'down',
-    'north',
-    'south',
-    'east',
-    'west',
-    'climbup',
-    'climbdown',
-    'upstairs',
-    'downstairs',
-    'ascend',
-    'descend',
-  ];
-  const location = game.rooms[game.player.location];
-  let output = '';
+// Dedicated movement keys
+export const DIR = {
+  N: 'north',
+  S: 'south',
+  E: 'east',
+  W: 'west',
+  U: 'up',
+  D: 'down',
+};
 
-  const stopWords = [
-    'to',
-    'at',
-    'the',
-    'a',
-    'an',
-    'on',
-    'in',
-    'with',
-    'into',
-    // 'up', // removed so directions are not filtered out
-  ];
+// Optional phrase mapping if you still accept "go north" in text
+const directionAliases = {
+  north: DIR.N,
+  n: DIR.N,
+  south: DIR.S,
+  s: DIR.S,
+  east: DIR.E,
+  e: DIR.E,
+  west: DIR.W,
+  w: DIR.W,
+  up: DIR.U,
+  u: DIR.U,
+  ascend: DIR.U,
+  upstairs: DIR.U,
+  climbup: DIR.U,
+  down: DIR.D,
+  d: DIR.D,
+  descend: DIR.D,
+  downstairs: DIR.D,
+  climbdown: DIR.D,
+};
 
-  const defaultItemResponses = {
-    take: "That thing won't budge.",
-    use: "You can't think of a way to use that right now.",
-    talk: "It doesn't seem to have anything to say.",
-    open: "You can't open that.",
-    read: 'There’s nothing to read here.',
-    examine: "There's nothing particularly interesting.",
-  };
+// Shared helpers
+const normalize = w => (w?.endsWith('s') ? w.slice(0, -1) : w);
 
-  const aliasMap = {
-    grab: 'take',
-    pickup: 'take',
-    'pick up': 'take',
-    inspect: 'examine',
-    check: 'examine',
-    look: 'look',
-    talk: 'talk',
-    speak: 'talk',
-    use: 'use',
-    read: 'read',
-    open: 'open',
-    go: 'go',
-    move: 'go',
-  };
-
-  const normalize = word => (word?.endsWith('s') ? word.slice(0, -1) : word);
-
-  const fuse = new Fuse(Object.values(game.items), {
+function makeItemSearch(game) {
+  return new Fuse(Object.values(game.items), {
     keys: ['handle', 'alt_handle', 'name'],
     threshold: 0.3,
   });
+}
 
-  const getItemByHandle = name => {
-    const normalized = normalize(name);
-    const exact = Object.values(game.items).find(
-      item =>
-        item.handle === normalized ||
-        item.alt_handle === normalized ||
-        item.name?.toLowerCase() === normalized,
-    );
-    if (exact) {
-      return exact;
-    }
-    const result = fuse.search(normalized);
-    return result.length > 0 ? result[0].item : null;
-  };
-
-  const cleanedInput = input.toLowerCase().trim();
-  const doc = nlp(cleanedInput);
-  const terms = cleanedInput.split(/\s+/).filter(w => !stopWords.includes(w));
-
-  let command = doc.verbs().out('array')[0] || terms[0];
-  command = aliasMap[command] || command;
-
-  let noun = '';
-  let target = '';
-
-  if (cleanedInput.includes(' on ')) {
-    const [first, second] = cleanedInput.split(' on ');
-    const firstWords = first.split(/\s+/).filter(w => !stopWords.includes(w));
-    const secondWords = second.split(/\s+/).filter(w => !stopWords.includes(w));
-    command = aliasMap[firstWords[0]] || firstWords[0];
-    noun = firstWords.slice(1).join(' ');
-    target = secondWords.join(' ');
-  } else {
-    noun = terms.slice(1).join(' ');
+function getItemByHandle(name, game, fuse) {
+  if (!name) {
+    return null;
   }
+  const q = normalize(name.toLowerCase());
+  const exact = Object.values(game.items).find(
+    it =>
+      it.handle === q || it.alt_handle === q || it.name?.toLowerCase() === q,
+  );
+  if (exact) {
+    return exact;
+  }
+  const res = fuse.search(q);
+  return res.length ? res[0].item : null;
+}
 
-  const performItemAction = (itemName, action) => {
-    const item = getItemByHandle(itemName);
-    if (!item) {
-      return `You don't see a "${itemName}" here.`;
-    }
-    if (action === 'take' && get(item, 'properties.mobile') === false) {
-      return "That thing won't budge.";
-    }
-    return (
-      item.responses?.[action] ||
-      defaultItemResponses[action] ||
-      'Nothing happens.'
-    );
-  };
+const defaultItemResponses = {
+  take: 'That thing will not budge.',
+  use: 'You cannot think of a way to use that right now.',
+  talk: 'It does not seem to have anything to say.',
+  open: 'You cannot open that.',
+  read: 'There is nothing to read here.',
+  examine: 'There is nothing particularly interesting.',
+};
 
+const aliasMap = {
+  grab: 'take',
+  pickup: 'take',
+  'pick up': 'take',
+  inspect: 'examine',
+  check: 'examine',
+  look: 'look',
+  talk: 'talk',
+  speak: 'talk',
+  use: 'use',
+  read: 'read',
+  open: 'open',
+  go: 'go', // optional compatibility
+  move: 'go', // optional compatibility
+  i: 'inventory',
+  l: 'look',
+  h: 'help',
+};
+
+// Simple dialogue example
+function makeGuardService() {
+  let output = '';
   const guardDialogue = createMachine({
     id: 'guard',
     initial: 'idle',
     states: {
-      idle: {
-        on: {TALK: 'intro'},
-      },
+      idle: {on: {TALK: 'intro'}},
       intro: {
         entry: () => {
-          output = 'Guard: Halt! Who goes there?';
+          output = 'Guard: Halt. Who goes there?';
         },
         on: {ASK_KEY: 'giveKey', BYE: 'idle'},
       },
@@ -138,195 +111,213 @@ export function evaluateCommand(input, game, setGame) {
       },
     },
   });
-
-  const guardService = interpret(guardDialogue).start();
-
-  switch (command) {
-    case 'up':
-    case 'down':
-    case 'north':
-    case 'south':
-    case 'east':
-    case 'west':
-      output = handleMovement(command, game, setGame);
-      break;
-    case 'look':
-    case 'l': {
-      if (cleanedInput.startsWith('look in ')) {
-        const containerName = cleanedInput.replace('look in ', '');
-        const container = getItemByHandle(containerName);
-        if (!container) {
-          output = `You don't see a "${containerName}" here.`;
-        } else if (!container.properties?.container) {
-          output = `You can't look inside the ${container.handle}.`;
-        } else if (!container.properties.open) {
-          output = `The ${container.handle} is closed.`;
-        } else {
-          const contents = container.contents || [];
-          if (contents.length === 0) {
-            output = `The ${container.handle} is empty.`;
-          } else {
-            const contentNames = contents
-              .map(id => game.items[id]?.name || id)
-              .join(', ');
-            output = `Inside the ${container.handle}, you see: ${contentNames}.`;
-          }
-        }
-      } else if (cleanedInput.startsWith('look at ')) {
-        const itemName = cleanedInput.replace('look at ', '');
-        const item = getItemByHandle(itemName);
-        if (item) {
-          output =
-            item.description ||
-            `You see nothing special about the ${itemName}.`;
-        } else {
-          output = `You don't see a "${itemName}" here.`;
-        }
-      } else {
-        output = location.description || 'You look around.';
-      }
-      break;
-    }
-
-    case 'go':
-      console.log('direction', noun);
-      output = handleMovement(noun, game, setGame);
-      break;
-
-    case 'inventory':
-    case 'i':
-      output = game.player.inventory.length
-        ? `You are carrying: ${game.player.inventory.join(', ')}`
-        : "You're not carrying anything.";
-      break;
-
-    case 'help':
-    case 'h':
-      output = game.messages.help;
-      break;
-
-    case 'use': {
-      if (noun && target) {
-        const item = getItemByHandle(noun);
-        const targetItem = getItemByHandle(target);
-
-        if (!item || !targetItem) {
-          output = `You can't use ${noun} on ${target}.`;
-        } else if (
-          item.tags.includes('key') &&
-          targetItem.tags.includes('access point') &&
-          item.code === targetItem.code
-        ) {
-          targetItem.properties.locked = false;
-          output = `You unlock the ${targetItem.handle} with the ${item.handle}.`;
-        } else {
-          output = 'Nothing happens.';
-        }
-      } else {
-        output = performItemAction(noun, 'use');
-      }
-      break;
-    }
-
-    case 'talk':
-    case 'open':
-    case 'read':
-    case 'examine': {
-      if (!noun) {
-        output = `What do you want to ${command}?`;
-      } else if (noun.includes('guard')) {
-        guardService.send('TALK');
-      } else {
-        output = performItemAction(noun, command);
-      }
-      break;
-    }
-
-    case 'take': {
-      const item = getItemByHandle(noun);
-      if (!item) {
-        output = `You don't see a "${noun}" here.`;
-      } else if (!item.properties?.mobile) {
-        output = "That thing won't budge.";
-      } else {
-        if (!game.player.inventory.includes(item.handle)) {
-          game.player.inventory.push(item.handle);
-          item.location = 'inventory';
-          output = `You take the ${item.handle}.`;
-        } else {
-          output = `You already have the ${item.handle}.`;
-        }
-      }
-      break;
-    }
-
-    default:
-      // Fallback: if the original input is a direction, treat as movement
-      const inputWord = cleanedInput.split(/\s+/)[0];
-      if (directionWords.includes(inputWord)) {
-        output = handleMovement(inputWord, game, setGame);
-      } else {
-        output = "I don't understand that command.";
-      }
-      break;
-  }
-
-  return output;
+  const service = interpret(guardDialogue).start();
+  return {service, getOutput: () => output};
 }
 
-function handleMovement(rawDirection, game, setGame) {
-  const directionAliases = {
-    up: 'up',
-    climbup: 'up',
-    upstairs: 'up',
-    ascend: 'up',
-
-    down: 'down',
-    climbdown: 'down',
-    downstairs: 'down',
-    descend: 'down',
-
-    north: 'north',
-    south: 'south',
-    east: 'east',
-    west: 'west',
-  };
-
-  // Normalize the input direction: remove spaces and lowercase
-  const cleaned = rawDirection.toLowerCase().replace(/\s+/g, '');
-  const normalizedDirection =
-    directionAliases[cleaned] || rawDirection.toLowerCase().trim();
-
+// Public movement API for your UI
+export function movePlayer(dir, game, setGame) {
+  const d = dir in DIR ? DIR[dir] : directionAliases[`${dir}`.toLowerCase()];
+  if (!d) {
+    return 'Unknown direction.';
+  }
   const currentRoom = game.rooms[game.player.location];
-  const nextRoomKey = currentRoom.rooms?.[normalizedDirection];
-
-  if (!nextRoomKey) {
-    return `You can't go ${normalizedDirection} from here.`;
+  const nextKey = currentRoom.rooms?.[d];
+  if (!nextKey) {
+    return `You cannot go ${d} from here.`;
   }
 
-  const nextRoom = game.rooms[nextRoomKey];
-
+  const nextRoom = game.rooms[nextKey];
   if (!nextRoom) {
-    return `Something blocks your way ${normalizedDirection}.`;
+    return `Something blocks your way ${d}.`;
   }
 
-  // Update game state
-  setGame(prevGame => ({
-    ...prevGame,
-    player: {
-      ...prevGame.player,
-      location: nextRoomKey,
-    },
+  setGame(prev => ({
+    ...prev,
+    player: {...prev.player, location: nextKey},
     rooms: {
-      ...prevGame.rooms,
-      [nextRoomKey]: {
-        ...nextRoom,
-        been_before: true,
-      },
+      ...prev.rooms,
+      [nextKey]: {...nextRoom, been_before: true},
     },
   }));
 
   return !nextRoom.been_before
     ? nextRoom.first_time_message || 'You enter a new place.'
     : nextRoom.header || 'You arrive.';
+}
+
+// Optional guard to check movement without moving
+export function canMove(dir, game) {
+  const d = dir in DIR ? DIR[dir] : directionAliases[`${dir}`.toLowerCase()];
+  if (!d) {
+    return false;
+  }
+  const currentRoom = game.rooms[game.player.location];
+  return Boolean(currentRoom.rooms?.[d]);
+}
+
+// Text command parser, with movement stripped out
+export function evaluateCommand(input, game, setGame) {
+  const location = game.rooms[game.player.location];
+  const fuse = makeItemSearch(game);
+  const {service: guardService, getOutput} = makeGuardService();
+
+  const raw = `${input}`.toLowerCase().trim();
+
+  // If the player types a single direction, do not parse it here
+  if (directionAliases[raw]) {
+    return 'Use the movement keys to move.';
+  }
+
+  // Tokenize simply and map first token through aliasMap
+  const parts = raw.split(/\s+/);
+  const mappedFirst = aliasMap[parts[0]] || parts[0];
+  let command = mappedFirst;
+  let rest = parts.slice(1).join(' ').trim();
+
+  // Support "use X on Y"
+  let noun = '';
+  let target = '';
+  if (rest.includes(' on ')) {
+    const [a, b] = rest.split(' on ');
+    noun = a.trim();
+    target = b.trim();
+  } else {
+    noun = rest;
+  }
+
+  const performItemAction = (itemName, action) => {
+    const item = getItemByHandle(itemName, game, fuse);
+    if (!item) {
+      return `You do not see a "${itemName}" here.`;
+    }
+    if (action === 'take' && get(item, 'properties.mobile') === false) {
+      return 'That thing will not budge.';
+    }
+    return (
+      item.responses?.[action] ||
+      defaultItemResponses[action] ||
+      'Nothing happens.'
+    );
+  };
+
+  switch (command) {
+    case 'help':
+      return game.messages.help;
+
+    case 'look': {
+      if (raw.startsWith('look in ')) {
+        const containerName = raw.replace('look in ', '');
+        const container = getItemByHandle(containerName, game, fuse);
+        if (!container) {
+          return `You do not see a "${containerName}" here.`;
+        }
+        if (!container.properties?.container) {
+          return `You cannot look inside the ${container.handle}.`;
+        }
+        if (!container.properties.open) {
+          return `The ${container.handle} is closed.`;
+        }
+        const contents = container.contents || [];
+        if (contents.length === 0) {
+          return `The ${container.handle} is empty.`;
+        }
+        const names = contents.map(id => game.items[id]?.name || id).join(', ');
+        return `Inside the ${container.handle}, you see: ${names}.`;
+      }
+      if (raw.startsWith('look at ')) {
+        const itemName = raw.replace('look at ', '');
+        const item = getItemByHandle(itemName, game, fuse);
+        if (!item) {
+          return `You do not see a "${itemName}" here.`;
+        }
+        return (
+          item.description || `You see nothing special about the ${itemName}.`
+        );
+      }
+      return location.description || 'You look around.';
+    }
+
+    case 'inventory': {
+      const inv = game.player.inventory || [];
+      return inv.length
+        ? `You are carrying: ${inv.join(', ')}`
+        : 'You are not carrying anything.';
+    }
+
+    case 'use': {
+      if (noun && target) {
+        const item = getItemByHandle(noun, game, fuse);
+        const targetItem = getItemByHandle(target, game, fuse);
+        if (!item || !targetItem) {
+          return `You cannot use ${noun} on ${target}.`;
+        }
+
+        if (
+          item.tags?.includes('key') &&
+          targetItem.tags?.includes('access point') &&
+          item.code &&
+          targetItem.code &&
+          item.code === targetItem.code
+        ) {
+          targetItem.properties.locked = false;
+          return `You unlock the ${targetItem.handle} with the ${item.handle}.`;
+        }
+        return 'Nothing happens.';
+      }
+      if (!noun) {
+        return 'Use what?';
+      }
+      return performItemAction(noun, 'use');
+    }
+
+    case 'talk': {
+      if (!noun) {
+        return 'Talk to whom?';
+      }
+      if (noun.includes('guard')) {
+        guardService.send('TALK');
+        return getOutput();
+      }
+      return performItemAction(noun, 'talk');
+    }
+
+    case 'open':
+    case 'read':
+    case 'examine': {
+      if (!noun) {
+        return `What do you want to ${command}?`;
+      }
+      return performItemAction(noun, command);
+    }
+
+    case 'take': {
+      const item = getItemByHandle(noun, game, fuse);
+      if (!item) {
+        return `You do not see a "${noun}" here.`;
+      }
+      if (!item.properties?.mobile) {
+        return 'That thing will not budge.';
+      }
+      if ((game.player.inventory || []).includes(item.handle)) {
+        return `You already have the ${item.handle}.`;
+      }
+      // mutate in place then reflect in setGame if you prefer immutability
+      game.player.inventory.push(item.handle);
+      item.location = 'inventory';
+      return `You take the ${item.handle}.`;
+    }
+
+    case 'go': {
+      // Optional compatibility: allow "go north" to pass to movement API
+      const d = directionAliases[noun];
+      if (!d) {
+        return 'Use the movement keys to move.';
+      }
+      return movePlayer(d, game, setGame);
+    }
+
+    default:
+      return 'I do not understand that command.';
+  }
 }
