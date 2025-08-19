@@ -3,6 +3,13 @@ import Fuse from 'fuse.js';
 import get from 'lodash/get';
 import {createMachine, interpret} from 'xstate';
 
+// Explicitly export the functions we need in GameUI
+export {evaluateCommand}; // This is already defined below
+
+// Function declarations
+
+// Export all necessary functions
+
 export const DIR = {
   N: 'north',
   S: 'south',
@@ -81,6 +88,7 @@ const aliasMap = {
   put: 'put',
   drop: 'drop',
   close: 'close',
+  keypad: 'use',
 };
 
 // tiny dialogue example kept as before
@@ -193,12 +201,11 @@ export function movePlayer(dir, game, setGame) {
   // Check if the direction is locked by a puzzle
   const accessPoint = currentRoom.access_points?.[d];
   if (accessPoint?.locked) {
-    if (accessPoint.puzzle === 'apartment_entrance_keypad') {
+    if (accessPoint.handle === 'entrance') {
       return 'The door is locked. There is a keypad here.';
     }
     return `The way ${d} is locked.`;
   }
-
   const nextRoom = game.rooms[nextKey];
   if (!nextRoom) {
     return `Something blocks your way ${d}.`;
@@ -218,7 +225,7 @@ export function movePlayer(dir, game, setGame) {
   return roomText + desc;
 }
 
-export function canMove(dir, game) {
+function canMove(dir, game) {
   const d = dir in DIR ? DIR[dir] : directionAliases[`${dir}`.toLowerCase()];
   if (!d) {
     return false;
@@ -228,12 +235,32 @@ export function canMove(dir, game) {
 }
 
 // parser with drop and containers
-export function evaluateCommand(input, game, setGame) {
+function evaluateCommand(input, game, setGame) {
   const location = game.rooms[game.player.location];
   const fuse = makeItemSearch(game);
   const {service: guardService, getOutput} = makeGuardService();
 
   const raw = `${input}`.toLowerCase().trim();
+
+  // If we're in keypad mode, treat any input as a code attempt
+  if (game.keypadMode) {
+    const keypad = getItemByHandle('keypad', game, fuse);
+    if (raw === String(keypad.code)) {
+      const currentRoom = game.rooms[game.player.location];
+      if (currentRoom.access_points?.west?.handle === 'entrance') {
+        setWith(next => {
+          next.rooms[next.player.location].access_points.west.locked = false;
+          next.keypadMode = false; // Exit keypad mode on success
+        }, setGame);
+        return 'The keypad beeps affirmatively and the door unlocks with a satisfying click.';
+      }
+    }
+    setGame(prev => ({
+      ...prev,
+      keypadMode: false, // Exit keypad mode on failure
+    }));
+    return "The keypad beeps negatively. That code doesn't work.";
+  }
 
   if (directionAliases[raw]) {
     return 'Use the movement keys to move.';
@@ -514,13 +541,17 @@ export function evaluateCommand(input, game, setGame) {
           return 'There is no keypad here.';
         }
 
-        // The code parameter would be passed as the remaining text
-        const code = rest.trim();
-
-        if (!code) {
-          return 'You see a numeric keypad next to the door. Enter "keypad <code>" to try a combination.';
+        // If this is just "use keypad" with no code, enter input mode
+        if (!rest || rest === 'keypad') {
+          setGame(prev => ({
+            ...prev,
+            keypadMode: true,
+          }));
+          return 'Enter the code for the keypad (just type the numbers):';
         }
 
+        // If we have input, treat it as a code
+        const code = rest.replace('keypad', '').trim();
         if (code === String(keypad.code)) {
           const currentRoom = game.rooms[game.player.location];
           if (
@@ -531,11 +562,16 @@ export function evaluateCommand(input, game, setGame) {
               next.rooms[
                 next.player.location
               ].access_points.west.locked = false;
+              next.keypadMode = false; // Exit keypad mode on success
             }, setGame);
             return 'The keypad beeps affirmatively and the door unlocks with a satisfying click.';
           }
         }
 
+        setGame(prev => ({
+          ...prev,
+          keypadMode: false, // Exit keypad mode on failure
+        }));
         return "The keypad beeps negatively. That code doesn't work.";
       }
 
@@ -559,6 +595,16 @@ export function evaluateCommand(input, game, setGame) {
       if (!noun) {
         return `What do you want to ${command}?`;
       }
+
+      // Special handling for examining the keypad
+      if (noun === 'keypad') {
+        const keypad = getItemByHandle('keypad', game, fuse);
+        if (!keypad || !isInCurrentRoom(keypad, game)) {
+          return 'There is no keypad here.';
+        }
+        return 'You see a numeric keypad mounted beside the door. It has buttons numbered 0-9 and appears to be working. Try "use keypad" to attempt entering a code.';
+      }
+
       return performItemAction(noun, command);
     }
 

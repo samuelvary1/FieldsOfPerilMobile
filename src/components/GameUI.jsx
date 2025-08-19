@@ -154,6 +154,17 @@ export default function GameUI({navigation}) {
         </View>
       </View>
 
+      {/* Current Room display */}
+      <View style={styles.currentRoomBox}>
+        <Text style={styles.currentRoomLabel}>Current Room</Text>
+        <Text style={styles.currentRoomName}>
+          {currentRoom?.header ||
+            currentRoom?.title ||
+            game?.player?.location ||
+            'Unknown Room'}
+        </Text>
+      </View>
+
       {/* Output first and big */}
       <ScrollView
         style={styles.output}
@@ -269,6 +280,36 @@ function ActionIcon({icon, label, onPress}) {
 /* Styles */
 
 const styles = StyleSheet.create({
+  currentRoomBox: {
+    backgroundColor: '#e6edf3',
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#bcd',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    shadowOffset: {width: 0, height: 1},
+  },
+  currentRoomLabel: {
+    color: '#2a3139',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginBottom: 2,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  currentRoomName: {
+    color: '#1a1a1a',
+    fontWeight: '600',
+    fontSize: 18,
+    letterSpacing: 0.5,
+  },
   container: {
     flex: 1,
     backgroundColor: '#141414',
