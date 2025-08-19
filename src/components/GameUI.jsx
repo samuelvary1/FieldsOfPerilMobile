@@ -13,8 +13,12 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import ActionComposer from './ActionComposer';
+import Chip from './Chip';
+import TopIcon from './TopIcon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {evaluateCommand, movePlayer} from '../engine/GameEngine';
+import MovementBar from './MovementBar';
 import items from '../data/items.json';
 import locations from '../data/locations.json';
 
@@ -22,9 +26,9 @@ export default function GameUI({navigation}) {
   const [log, setLog] = useState([]);
   const [input, setInput] = useState('');
   const [game, setGame] = useState(null);
-  const [recentCommands, setRecentCommands] = useState([]);
+  // const [recentCommands, setRecentCommands] = useState([]); // unused
   const [showExtras, setShowExtras] = useState(true); // Focus toggle
-  const [showRecents, setShowRecents] = useState(false);
+  // const [showRecents, setShowRecents] = useState(false); // unused
   const [showTyping, setShowTyping] = useState(__DEV__); // typing bar toggle (on in dev)
 
   const scrollViewRef = useRef(null);
@@ -77,9 +81,7 @@ export default function GameUI({navigation}) {
     }
     const response = evaluateCommand(cmd.trim(), game, setGame);
     appendLog(`> ${cmd}`, response);
-    setRecentCommands(prev =>
-      [cmd, ...prev.filter(c => c !== cmd)].slice(0, 5),
-    );
+    // setRecentCommands removed: recentCommands is unused
     setInput('');
   };
 
@@ -216,20 +218,7 @@ export default function GameUI({navigation}) {
         </View>
       )}
 
-      {/* Recents collapsed by default */}
-      {showExtras && showRecents && recentCommands.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chipsRow}>
-            {recentCommands.slice(0, 3).map(cmd => (
-              <Chip key={cmd} label={cmd} onPress={() => handleCommand(cmd)} />
-            ))}
-          </ScrollView>
-        </View>
-      )}
+      {/* Recents collapsed by default - removed unused showRecents and recentCommands UI */}
 
       {/* Action Composer: verbs & context targets (minimal typing) */}
       <ActionComposer game={game} onCommand={handleCommand} />
@@ -257,26 +246,9 @@ export default function GameUI({navigation}) {
 
 /* Small components */
 
-function TopIcon({icon, label, onPress}) {
-  return (
-    <TouchableOpacity style={styles.topIcon} onPress={onPress}>
-      <Icon name={icon} size={16} color="#fff" />
-      <Text style={styles.topIconLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
+// TopIcon is now imported from './TopIcon'
 
-function Chip({label, icon, onPress, onLongPress, meta}) {
-  return (
-    <Pressable onPress={onPress} onLongPress={onLongPress} style={styles.chip}>
-      {icon ? (
-        <Icon name={icon} size={14} color="#fff" style={{marginRight: 6}} />
-      ) : null}
-      <Text style={styles.chipText}>{label}</Text>
-      {meta ? <Text style={styles.badge}>{meta}</Text> : null}
-    </Pressable>
-  );
-}
+// Chip is now imported from './Chip'
 
 function ActionIcon({icon, label, onPress}) {
   return (
@@ -287,31 +259,7 @@ function ActionIcon({icon, label, onPress}) {
   );
 }
 
-function MovementBar({exits, onMove}) {
-  const Btn = ({dir, icon, label}) => {
-    const enabled = exits.has(dir);
-    return (
-      <TouchableOpacity
-        disabled={!enabled}
-        onPress={() => enabled && onMove(dir)}
-        style={[styles.mvBtn, !enabled && styles.mvBtnDisabled]}>
-        <Icon name={icon} size={14} color="#fff" />
-        <Text style={styles.mvLabel}>{label}</Text>
-      </TouchableOpacity>
-    );
-  };
-
-  return (
-    <View style={styles.moveDock}>
-      <Btn dir="up" icon="chevron-up" label="UP" />
-      <Btn dir="north" icon="arrow-up" label="N" />
-      <Btn dir="west" icon="arrow-left" label="W" />
-      <Btn dir="east" icon="arrow-right" label="E" />
-      <Btn dir="south" icon="arrow-down" label="S" />
-      <Btn dir="down" icon="chevron-down" label="DOWN" />
-    </View>
-  );
-}
+// MovementBar is now imported from './MovementBar'
 
 /* Styles */
 
@@ -382,7 +330,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginRight: 8,
   },
-  chipText: {color: '#fff', fontSize: 14, marginRight: 6},
+  chipIcon: {marginRight: 6},
+  chipText: {color: '#fff', fontSize: 14},
   badge: {
     color: '#cfe',
     fontSize: 12,
@@ -462,277 +411,11 @@ const styles = StyleSheet.create({
   mvLabel: {color: '#fff', fontSize: 12},
 });
 
-/* ---------- ACTION COMPOSER (contextual verbs & targets) ---------- */
-
-function ActionComposer({game, onCommand}) {
-  const [verb, setVerb] = React.useState(null);
-  const [noun, setNoun] = React.useState(null);
-  if (!game) {
-    return null;
-  }
-
-  // Context helpers
-  const room = game.rooms[game.player.location];
-  const getItem = h => game.items[h];
-
-  const roomItems = (room.items || []).map(getItem).filter(Boolean);
-  const invItems = (game.player.inventory || []).map(getItem).filter(Boolean);
-
-  const isContainer = it => it?.properties?.container;
-  const isOpen = it => Boolean(it?.properties?.open);
-  const isMobile = it => it?.properties?.mobile !== false;
-  const hasRead = it => it?.responses?.read || it?.tags?.includes('readable');
-  const isNPC = it => it?.tags?.includes('npc');
-
-  const containers = [...roomItems, ...invItems].filter(isContainer);
-  const openContainers = containers.filter(isOpen);
-  const closedContainers = containers.filter(c => !isOpen(c));
-
-  // contents with origin so we can build "take X from Y"
-  const contents = openContainers
-    .flatMap(c =>
-      (c.contents || []).map(h => ({item: getItem(h), container: c})),
-    )
-    .filter(x => x.item);
-
-  const takablesInRoom = roomItems.filter(isMobile);
-  const readable = [...roomItems, ...invItems].filter(hasRead);
-  const examinables = [
-    ...roomItems,
-    ...invItems,
-    ...contents.map(x => x.item), // items inside open containers
-  ];
-  const npcs = roomItems.filter(isNPC);
-  const putTargets = openContainers;
-  const useItems = invItems;
-  const useTargets = [...roomItems, ...containers].filter(Boolean);
-
-  // Labels & meta
-  const containerMeta = c =>
-    `${isOpen(c) ? 'Open' : 'Closed'} • ${(c.contents || []).length} inside`;
-  const itemFromLabel = (it, container) =>
-    `${it.name || it.handle} from ${container?.name || container?.handle}`;
-
-  // Utilities
-  const doCmd = cmd => {
-    onCommand(cmd);
-    setVerb(null);
-    setNoun(null);
-  };
-
-  const heading = txt => <Text style={acStyles.prompt}>{txt}</Text>;
-
-  const chips = (arr, onPress, lab = it => it.name || it.handle, meta) => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={acStyles.row}>
-      {arr.length === 0 ? (
-        <Text style={{color: '#9aa'}}>Nothing here</Text>
-      ) : null}
-      {arr.map(it => (
-        <Chip
-          key={it.handle}
-          label={lab(it)}
-          onPress={() => onPress(it)}
-          meta={meta ? meta(it) : undefined}
-        />
-      ))}
-    </ScrollView>
-  );
-
-  // Two-step flows
-  if (verb === 'use' && !noun) {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} onBack={() => setVerb(null)} />
-        {heading('Select an item to use')}
-        {chips(useItems, it => setNoun(it.handle))}
-      </View>
-    );
-  }
-  if (verb === 'use' && noun) {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} noun={noun} onBack={() => setNoun(null)} />
-        {heading(`Use ${noun} on`)}
-        {chips(useTargets, t => doCmd(`use ${noun} on ${t.handle}`))}
-      </View>
-    );
-  }
-  if (verb === 'put' && !noun) {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} onBack={() => setVerb(null)} />
-        {heading('Put which item')}
-        {chips(invItems, it => setNoun(it.handle))}
-      </View>
-    );
-  }
-  if (verb === 'put' && noun) {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} noun={noun} onBack={() => setNoun(null)} />
-        {heading(`Put ${noun} in`)}
-        {chips(
-          putTargets,
-          c => doCmd(`put ${noun} in ${c.handle}`),
-          it => it.name || it.handle,
-          containerMeta,
-        )}
-      </View>
-    );
-  }
-
-  // One-step verbs with context filtering
-  if (verb === 'take') {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} onBack={() => setVerb(null)} />
-        {heading('From the room')}
-        {chips(takablesInRoom, it => doCmd(`take ${it.handle}`))}
-        {contents.length > 0 ? heading('From containers') : null}
-        {chips(
-          contents.map(x => x.item),
-          it => {
-            const origin = contents.find(
-              x => x.item.handle === it.handle,
-            )?.container;
-            doCmd(`take ${it.handle} from ${origin.handle}`);
-          },
-          it => {
-            const origin = contents.find(
-              x => x.item.handle === it.handle,
-            )?.container;
-            return itemFromLabel(it, origin);
-          },
-        )}
-      </View>
-    );
-  }
-
-  if (verb === 'open') {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} onBack={() => setVerb(null)} />
-        {heading('Closed containers')}
-        {chips(
-          closedContainers,
-          it => doCmd(`open ${it.handle}`),
-          it => it.name || it.handle,
-          containerMeta,
-        )}
-        {openContainers.length ? heading('Already open') : null}
-        {chips(
-          openContainers,
-          () => {},
-          it => it.name || it.handle,
-          containerMeta,
-        )}
-      </View>
-    );
-  }
-
-  if (verb === 'close') {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} onBack={() => setVerb(null)} />
-        {heading('Open containers')}
-        {chips(
-          openContainers,
-          it => doCmd(`close ${it.handle}`),
-          it => it.name || it.handle,
-          containerMeta,
-        )}
-      </View>
-    );
-  }
-
-  if (verb === 'read') {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} onBack={() => setVerb(null)} />
-        {chips(readable, it => doCmd(`read ${it.handle}`))}
-      </View>
-    );
-  }
-
-  if (verb === 'examine') {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} onBack={() => setVerb(null)} />
-        {heading('In the room')}
-        {chips(
-          roomItems,
-          it => doCmd(`examine ${it.handle}`),
-          it => {
-            if (isContainer(it)) {
-              return `${it.name || it.handle}`;
-            }
-            return it.name || it.handle;
-          },
-          it => (isContainer(it) ? containerMeta(it) : undefined),
-        )}
-
-        {invItems.length ? heading('In your inventory') : null}
-        {chips(invItems, it => doCmd(`examine ${it.handle}`))}
-
-        {openContainers.length
-          ? heading('Look inside (open containers)')
-          : null}
-        {chips(
-          openContainers,
-          c => doCmd(`look in ${c.handle}`),
-          it => it.name || it.handle,
-          containerMeta,
-        )}
-
-        {contents.length ? heading('Items inside containers') : null}
-        {chips(
-          contents.map(x => x.item),
-          it => doCmd(`examine ${it.handle}`),
-          it => {
-            const origin = contents.find(
-              x => x.item.handle === it.handle,
-            )?.container;
-            return itemFromLabel(it, origin);
-          },
-        )}
-      </View>
-    );
-  }
-
-  if (verb === 'talk') {
-    return (
-      <View style={acStyles.wrap}>
-        <Bar verb={verb} onBack={() => setVerb(null)} />
-        {chips(npcs, it => doCmd(`talk ${it.handle}`))}
-      </View>
-    );
-  }
-
-  // Default collapsed verb bar
-  return (
-    <View style={acStyles.bar}>
-      {['examine', 'take', 'open', 'close', 'read', 'talk', 'use', 'put'].map(
-        v => (
-          <TouchableOpacity
-            key={v}
-            style={acStyles.btn}
-            onPress={() => setVerb(v)}>
-            <Text style={acStyles.btnText}>{v.toUpperCase()}</Text>
-          </TouchableOpacity>
-        ),
-      )}
-    </View>
-  );
-}
-
 function Bar({verb, noun, onBack}) {
   return (
     <View style={acStyles.header}>
       <TouchableOpacity onPress={onBack} style={acStyles.back}>
-        <Text style={{color: '#9bd'}}>Back</Text>
+        <Text style={acStyles.backText}>Back</Text>
       </TouchableOpacity>
       <Text style={acStyles.headerText}>
         {verb.toUpperCase()} {noun ? `• ${noun}` : ''}
