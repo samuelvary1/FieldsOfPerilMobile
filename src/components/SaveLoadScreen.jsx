@@ -1,6 +1,13 @@
 // SaveLoadScreen.jsx
 import React, {useEffect, useState} from 'react';
-import {View, Text, TouchableOpacity, Alert, ScrollView} from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const slots = ['slot1', 'slot2', 'slot3'];
@@ -58,29 +65,21 @@ export default function SaveLoadScreen({navigation, route}) {
   };
 
   const row = (label, key, data, canSave) => (
-    <View
-      key={key}
-      style={{padding: 12, borderBottomWidth: 1, borderColor: '#ddd'}}>
-      <Text style={{fontWeight: '600', marginBottom: 8}}>{label}</Text>
-      <Text style={{marginBottom: 8}}>
+    <View key={key} style={styles.row}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.location}>
         {data ? `Player at ${data.player?.location}` : 'empty'}
       </Text>
-      <View style={{flexDirection: 'row', gap: 12}}>
-        <TouchableOpacity
-          onPress={() => load(key)}
-          style={{padding: 8, borderWidth: 1, borderRadius: 6}}>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity onPress={() => load(key)} style={styles.button}>
           <Text>Load</Text>
         </TouchableOpacity>
         {canSave ? (
-          <TouchableOpacity
-            onPress={() => save(key)}
-            style={{padding: 8, borderWidth: 1, borderRadius: 6}}>
+          <TouchableOpacity onPress={() => save(key)} style={styles.button}>
             <Text>Save</Text>
           </TouchableOpacity>
         ) : null}
-        <TouchableOpacity
-          onPress={() => remove(key)}
-          style={{padding: 8, borderWidth: 1, borderRadius: 6}}>
+        <TouchableOpacity onPress={() => remove(key)} style={styles.button}>
           <Text>Delete</Text>
         </TouchableOpacity>
       </View>
@@ -88,9 +87,36 @@ export default function SaveLoadScreen({navigation, route}) {
   );
 
   return (
-    <ScrollView contentContainerStyle={{padding: 16}}>
+    <ScrollView contentContainerStyle={styles.container}>
       {row('Autosave', 'autosave', meta.autosave, false)}
       {slots.map(s => row(`Slot ${s.slice(-1)}`, s, meta[s], true))}
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 16,
+  },
+  row: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+  },
+  label: {
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  location: {
+    marginBottom: 8,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  button: {
+    padding: 8,
+    borderWidth: 1,
+    borderRadius: 6,
+  },
+});
