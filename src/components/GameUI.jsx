@@ -154,17 +154,6 @@ export default function GameUI({navigation}) {
         </View>
       </View>
 
-      {/* Current Room display */}
-      <View style={styles.currentRoomBox}>
-        <Text style={styles.currentRoomLabel}>Current Room</Text>
-        <Text style={styles.currentRoomName}>
-          {currentRoom?.header ||
-            currentRoom?.title ||
-            game?.player?.location ||
-            'Unknown Room'}
-        </Text>
-      </View>
-
       {/* Output first and big */}
       <ScrollView
         style={styles.output}

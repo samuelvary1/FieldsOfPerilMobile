@@ -245,14 +245,17 @@ function evaluateCommand(input, game, setGame) {
   // If we're in keypad mode, treat any input as a code attempt
   if (game.keypadMode) {
     const keypad = getItemByHandle('keypad', game, fuse);
-    if (raw === String(keypad.code)) {
+    const inputCode = Number(raw.trim());
+    if (inputCode === keypad.code) {
       const currentRoom = game.rooms[game.player.location];
-      if (currentRoom.access_points?.west?.handle === 'entrance') {
+      if (currentRoom.access_points?.west) {
         setWith(next => {
           next.rooms[next.player.location].access_points.west.locked = false;
           next.keypadMode = false; // Exit keypad mode on success
         }, setGame);
         return 'The keypad beeps affirmatively and the door unlocks with a satisfying click.';
+      } else {
+        return 'Code accepted, but no west door found to unlock.';
       }
     }
     setGame(prev => ({
@@ -551,13 +554,11 @@ function evaluateCommand(input, game, setGame) {
         }
 
         // If we have input, treat it as a code
-        const code = rest.replace('keypad', '').trim();
-        if (code === String(keypad.code)) {
+
+        const code = Number(rest.replace('keypad', '').trim());
+        if (code === keypad.code) {
           const currentRoom = game.rooms[game.player.location];
-          if (
-            currentRoom.access_points?.west?.puzzle ===
-            'apartment_entrance_keypad'
-          ) {
+          if (currentRoom.access_points?.west?.handle === 'entrance') {
             setWith(next => {
               next.rooms[
                 next.player.location
