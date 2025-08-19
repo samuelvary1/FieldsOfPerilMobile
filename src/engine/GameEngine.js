@@ -190,6 +190,15 @@ export function movePlayer(dir, game, setGame) {
     return `You cannot go ${d} from here.`;
   }
 
+  // Check if the direction is locked by a puzzle
+  const accessPoint = currentRoom.access_points?.[d];
+  if (accessPoint?.locked) {
+    if (accessPoint.puzzle === 'apartment_entrance_keypad') {
+      return 'The door is locked. There is a keypad here.';
+    }
+    return `The way ${d} is locked.`;
+  }
+
   const nextRoom = game.rooms[nextKey];
   if (!nextRoom) {
     return `Something blocks your way ${d}.`;
@@ -497,6 +506,39 @@ export function evaluateCommand(input, game, setGame) {
       if (!noun) {
         return 'Use what?';
       }
+
+      // Special handling for the keypad
+      if (noun === 'keypad') {
+        const keypad = getItemByHandle('keypad', game, fuse);
+        if (!keypad || !isInCurrentRoom(keypad, game)) {
+          return 'There is no keypad here.';
+        }
+
+        // The code parameter would be passed as the remaining text
+        const code = rest.trim();
+
+        if (!code) {
+          return 'You see a numeric keypad next to the door. Enter "keypad <code>" to try a combination.';
+        }
+
+        if (code === String(keypad.code)) {
+          const currentRoom = game.rooms[game.player.location];
+          if (
+            currentRoom.access_points?.west?.puzzle ===
+            'apartment_entrance_keypad'
+          ) {
+            setWith(next => {
+              next.rooms[
+                next.player.location
+              ].access_points.west.locked = false;
+            }, setGame);
+            return 'The keypad beeps affirmatively and the door unlocks with a satisfying click.';
+          }
+        }
+
+        return "The keypad beeps negatively. That code doesn't work.";
+      }
+
       return performItemAction(noun, 'use');
     }
 
