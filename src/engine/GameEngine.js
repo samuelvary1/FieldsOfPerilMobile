@@ -326,23 +326,36 @@ function evaluateCommand(input, game, setGame) {
           return `You do not see a "${containerName}" here.`;
         }
         if (!container.properties?.container) {
-          return `You cannot look inside the ${container.handle}.`;
+          return `You cannot look inside the ${
+            container.name || container.id
+          }.`;
         }
         if (!container.properties.open) {
-          return `The ${container.handle} is closed.`;
+          return `The ${container.name || container.id} is closed.`;
         }
-        const contents = ensureArray(container.contents);
+        // Set a flag that we've looked inside this container
+        setWith(next => {
+          next.state.flags = next.state.flags || {};
+          next.state.flags[`looked_in_${container.id}`] = true;
+        }, setGame);
+        const contents = ensureArray(container.contains);
         if (contents.length === 0) {
-          return `The ${container.handle} is empty.`;
+          return `The ${container.name || container.id} is empty.`;
         }
         const names = contents.map(id => game.items[id]?.name || id).join(', ');
-        return `Inside the ${container.handle}, you see: ${names}.`;
+        return `Inside the ${
+          container.name || container.id
+        }, you see: ${names}.`;
       }
       if (raw.startsWith('look at ') || raw.startsWith('examine ')) {
         const itemName = raw.replace(/^(look at|examine) /, '');
         const item = getItemByHandle(itemName, game, fuse);
         if (!item) {
           return `You do not see a "${itemName}" here.`;
+        }
+        // Special case: if item is the letter, show its 'read' response if present
+        if (item.id === 'letter' && item.responses?.read) {
+          return item.responses.read;
         }
         let desc =
           item.description || `You see nothing special about the ${itemName}.`;
@@ -387,7 +400,7 @@ function evaluateCommand(input, game, setGame) {
         return performItemAction(noun, 'open');
       }
       if (item.properties.open) {
-        return `The ${item.handle} is already open.`;
+        return `The ${item.name || item.id} is already open.`;
       }
       setWith(next => {
         if (next.items[item.id]) {
@@ -447,24 +460,45 @@ function evaluateCommand(input, game, setGame) {
         }.`;
       }
 
-      // take x from room or ground
+      // take x from room, ground, or open/peeked container in current room
       const item = getItemByHandle(noun, game, fuse);
       if (!item) {
         return `You do not see a "${noun}" here.`;
       }
-      if (!isInCurrentRoom(item, game)) {
-        if (isInInventory(item, game)) {
-          return `You already have the ${item.handle}.`;
+      const currentRoom = game.rooms[game.player.location];
+      if (isInCurrentRoom(item, game)) {
+        if (get(item, 'properties.mobile') === false) {
+          return 'That thing will not budge.';
         }
-        return 'You cannot reach that here.';
+        setWith(next => {
+          addToInventory(item.id, next);
+        }, setGame);
+        return `You take the ${item.name || item.id}.`;
       }
-      if (get(item, 'properties.mobile') === false) {
-        return 'That thing will not budge.';
+      // Check if item is in an open, looked-in container in the current room
+      const container = Object.values(game.items).find(
+        c =>
+          c.contains &&
+          Array.isArray(c.contains) &&
+          c.contains.includes(item.id) &&
+          c.location === currentRoom.id &&
+          c.properties?.container &&
+          c.properties?.open &&
+          game.state?.flags?.[`looked_in_${c.id}`],
+      );
+      if (container) {
+        setWith(next => {
+          removeFromContainer(item.id, container.id, next);
+          addToInventory(item.id, next);
+        }, setGame);
+        return `You take the ${item.name || item.id} from the ${
+          container.name || container.id
+        }.`;
       }
-      setWith(next => {
-        addToInventory(item.id, next);
-      }, setGame);
-      return `You take the ${item.name || item.id}.`;
+      if (isInInventory(item, game)) {
+        return `You already have the ${item.handle}.`;
+      }
+      return 'You cannot reach that here.';
     }
 
     case 'drop': {
