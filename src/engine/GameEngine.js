@@ -38,7 +38,7 @@ const deepClone = obj => JSON.parse(JSON.stringify(obj));
 
 function makeItemSearch(game) {
   return new Fuse(Object.values(game.items), {
-    keys: ['handle', 'alt_handle', 'name'],
+    keys: ['id', 'name'],
     threshold: 0.3,
   });
 }
@@ -49,8 +49,7 @@ function getItemByHandle(name, game, fuse) {
   }
   const q = normalize(name.toLowerCase());
   const exact = Object.values(game.items).find(
-    it =>
-      it.handle === q || it.alt_handle === q || it.name?.toLowerCase() === q,
+    it => it.id === q || it.name?.toLowerCase() === q,
   );
   if (exact) {
     return exact;
@@ -112,7 +111,7 @@ function makeGuardService() {
 
 // location helpers
 function isInInventory(item, game) {
-  return game.player.inventory.includes(item.handle);
+  return game.player.inventory.includes(item.id);
 }
 function isInCurrentRoom(item, game) {
   return item.location === game.player.location;
@@ -136,34 +135,46 @@ function setWith(updater, setGame) {
   });
 }
 
-function addToInventory(itemHandle, game) {
-  if (!game.player.inventory.includes(itemHandle)) {
-    game.player.inventory.push(itemHandle);
+function addToInventory(itemId, game) {
+  if (!game.player.inventory.includes(itemId)) {
+    game.player.inventory.push(itemId);
   }
-  game.items[itemHandle].location = 'inventory';
-}
-
-function removeFromInventory(itemHandle, game) {
-  game.player.inventory = game.player.inventory.filter(h => h !== itemHandle);
-}
-
-function putInRoom(itemHandle, roomKey, game) {
-  game.items[itemHandle].location = roomKey;
-}
-
-function putInContainer(itemHandle, containerHandle, game) {
-  const container = game.items[containerHandle];
-  container.contents = ensureArray(container.contents);
-  if (!container.contents.includes(itemHandle)) {
-    container.contents.push(itemHandle);
+  if (game.items[itemId]) {
+    game.items[itemId].location = 'inventory';
   }
-  game.items[itemHandle].location = containerHandle; // parent pointer
 }
 
-function removeFromContainer(itemHandle, containerHandle, game) {
-  const container = game.items[containerHandle];
-  container.contents = ensureArray(container.contents).filter(
-    h => h !== itemHandle,
+function removeFromInventory(itemId, game) {
+  game.player.inventory = game.player.inventory.filter(h => h !== itemId);
+}
+
+function putInRoom(itemId, roomKey, game) {
+  if (game.items[itemId]) {
+    game.items[itemId].location = roomKey;
+  }
+}
+
+function putInContainer(itemId, containerId, game) {
+  const container = game.items[containerId];
+  if (!container) {
+    return;
+  }
+  container.contains = ensureArray(container.contains);
+  if (!container.contains.includes(itemId)) {
+    container.contains.push(itemId);
+  }
+  if (game.items[itemId]) {
+    game.items[itemId].location = containerId; // parent pointer
+  }
+}
+
+function removeFromContainer(itemId, containerId, game) {
+  const container = game.items[containerId];
+  if (!container) {
+    return;
+  }
+  container.contains = ensureArray(container.contains).filter(
+    h => h !== itemId,
   );
 }
 
@@ -329,9 +340,11 @@ export function evaluateCommand(input, game, setGame) {
         return `The ${item.handle} is already open.`;
       }
       setWith(next => {
-        next.items[item.handle].properties.open = true;
+        if (next.items[item.id]) {
+          next.items[item.id].properties.open = true;
+        }
       }, setGame);
-      return `You open the ${item.handle}.`;
+      return `You open the ${item.name || item.id}.`;
     }
 
     case 'close': {
@@ -346,9 +359,11 @@ export function evaluateCommand(input, game, setGame) {
         return `The ${item.handle} is already closed.`;
       }
       setWith(next => {
-        next.items[item.handle].properties.open = false;
+        if (next.items[item.id]) {
+          next.items[item.id].properties.open = false;
+        }
       }, setGame);
-      return `You close the ${item.handle}.`;
+      return `You close the ${item.name || item.id}.`;
     }
 
     case 'take': {
@@ -360,22 +375,26 @@ export function evaluateCommand(input, game, setGame) {
           return `You cannot take ${noun} from ${target}.`;
         }
         if (!container.properties?.container) {
-          return `The ${container.handle} is not a container.`;
+          return `The ${container.name || container.id} is not a container.`;
         }
         if (!isContainerOpen(container)) {
-          return `The ${container.handle} is closed.`;
+          return `The ${container.name || container.id} is closed.`;
         }
-        if (!ensureArray(container.contents).includes(item.handle)) {
-          return `There is no ${item.handle} in the ${container.handle}.`;
+        if (!ensureArray(container.contents).includes(item.id)) {
+          return `There is no ${item.name || item.id} in the ${
+            container.name || container.id
+          }.`;
         }
         if (get(item, 'properties.mobile') === false) {
           return 'That thing will not budge.';
         }
         setWith(next => {
-          removeFromContainer(item.handle, container.handle, next);
-          addToInventory(item.handle, next);
+          removeFromContainer(item.id, container.id, next);
+          addToInventory(item.id, next);
         }, setGame);
-        return `You take the ${item.handle} from the ${container.handle}.`;
+        return `You take the ${item.name || item.id} from the ${
+          container.name || container.id
+        }.`;
       }
 
       // take x from room or ground
@@ -393,9 +412,9 @@ export function evaluateCommand(input, game, setGame) {
         return 'That thing will not budge.';
       }
       setWith(next => {
-        addToInventory(item.handle, next);
+        addToInventory(item.id, next);
       }, setGame);
-      return `You take the ${item.handle}.`;
+      return `You take the ${item.name || item.id}.`;
     }
 
     case 'drop': {
@@ -407,10 +426,10 @@ export function evaluateCommand(input, game, setGame) {
         return `You are not carrying the ${item.handle}.`;
       }
       setWith(next => {
-        removeFromInventory(item.handle, next);
-        putInRoom(item.handle, next.player.location, next);
+        removeFromInventory(item.id, next);
+        putInRoom(item.id, next.player.location, next);
       }, setGame);
-      return `You drop the ${item.handle}.`;
+      return `You drop the ${item.name || item.id}.`;
     }
 
     case 'put': {
@@ -442,10 +461,12 @@ export function evaluateCommand(input, game, setGame) {
         return `The ${container.handle} is full.`;
       }
       setWith(next => {
-        removeFromInventory(item.handle, next);
-        putInContainer(item.handle, container.handle, next);
+        removeFromInventory(item.id, next);
+        putInContainer(item.id, container.id, next);
       }, setGame);
-      return `You put the ${item.handle} in the ${container.handle}.`;
+      return `You put the ${item.name || item.id} in the ${
+        container.name || container.id
+      }.`;
     }
 
     case 'use': {
@@ -463,9 +484,13 @@ export function evaluateCommand(input, game, setGame) {
           item.code === targetItem.code
         ) {
           setWith(next => {
-            next.items[targetItem.handle].properties.locked = false;
+            if (next.items[targetItem.id]) {
+              next.items[targetItem.id].properties.locked = false;
+            }
           }, setGame);
-          return `You unlock the ${targetItem.handle} with the ${item.handle}.`;
+          return `You unlock the ${targetItem.name || targetItem.id} with the ${
+            item.name || item.id
+          }.`;
         }
         return 'Nothing happens.';
       }

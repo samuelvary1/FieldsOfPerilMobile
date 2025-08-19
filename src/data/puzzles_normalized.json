@@ -1,0 +1,18 @@
+[
+  {
+    "id": "apartment_entrance_keypad",
+    "type": "keypad",
+    "location": "apartment_living_room",
+    "description": "A keypad by the apartment entrance. Enter the answer to the Ultimate Question of Life, the Universe, and Everything.",
+    "solution": "42",
+    "unlocks": ["3rd_floor_stairs"]
+  },
+  {
+    "id": "fireplace_secret",
+    "type": "mechanism",
+    "location": "apartment_living_room",
+    "description": "A hidden mechanism in the fireplace. Solve to access the secret room.",
+    "solution": "pull candle-holder",
+    "unlocks": ["secret_room"]
+  }
+]

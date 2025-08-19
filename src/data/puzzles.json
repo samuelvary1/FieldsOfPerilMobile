@@ -1,0 +1,26 @@
+[
+  {
+    "id": "living_room_safe",
+    "type": "combination_lock",
+    "location": "apartment_living_room",
+    "description": "A safe with a 3-digit combination.",
+    "solution": "123",
+    "unlocks": ["safe_1"]
+  },
+  {
+    "id": "bedroom_lock",
+    "type": "keypad",
+    "location": "apartment_bedroom",
+    "description": "A keypad lock on the bedroom door.",
+    "solution": "0420",
+    "unlocks": ["apartment_bedroom"]
+  },
+  {
+    "id": "kitchen_cabinet_lock",
+    "type": "key",
+    "location": "apartment_kitchen",
+    "description": "A locked kitchen cabinet. Requires a key.",
+    "solution": "cabinet_key",
+    "unlocks": ["cabinet"]
+  }
+]

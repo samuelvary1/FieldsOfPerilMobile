@@ -19,8 +19,8 @@ import TopIcon from './TopIcon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {evaluateCommand, movePlayer} from '../engine/GameEngine';
 import MovementBar from './MovementBar';
-import items from '../data/items.json';
-import locations from '../data/locations.json';
+import items from '../data/items_normalized.json';
+import locations from '../data/locations_normalized.json';
 
 export default function GameUI({navigation}) {
   const [log, setLog] = useState([]);
@@ -37,16 +37,16 @@ export default function GameUI({navigation}) {
   useEffect(() => {
     const rooms = {};
     locations.forEach(room => {
-      rooms[room.title] = {...room, been_before: false};
+      rooms[room.id] = {...room, been_before: false};
     });
 
     const itemMap = {};
     items.forEach(it => {
-      itemMap[it.handle] = it;
+      itemMap[it.id] = it;
     });
 
     setGame({
-      schemaVersion: 1,
+      schemaVersion: 2,
       rooms,
       items: itemMap,
       player: {location: 'apartment_living_room', inventory: []},
@@ -200,9 +200,14 @@ export default function GameUI({navigation}) {
           <Text style={styles.sectionTitle}>Actions</Text>
           <View style={styles.actionsRow}>
             <ActionIcon
-              label="Look"
+              label="Look Around"
               icon="search"
-              onPress={() => handleCommand('look')}
+              onPress={() => {
+                if (!game) {
+                  return;
+                }
+                appendLog(currentRoom.description || 'You look around.');
+              }}
             />
             <ActionIcon
               label="Inventory"

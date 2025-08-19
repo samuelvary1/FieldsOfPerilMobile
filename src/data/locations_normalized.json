@@ -1,0 +1,52 @@
+[
+  {
+    "id": "apartment_living_room",
+    "title": "Apartment Living Room",
+    "description": "That rifle will probably come in handy, and you should check that box on the desk for any helpful correspondence! There's also a chest standing in one corner.",
+    "starting_location": true,
+    "first_time_message": "You wake up to find yourself in a seemingly abandoned apartment. You see a small wooden chest, an old hunting rifle, and what appears to be a box for stationery on a desk in the corner",
+    "details": {"phrase": "You spot a keypad by the apartment entrance."},
+    "rooms": {
+      "west": "3rd_floor_stairs",
+      "east": "secret_room",
+      "south": "bathroom"
+    },
+    "access_points": {
+      "west": {"locked": true, "puzzle": "apartment_entrance_keypad"},
+      "east": {"locked": true, "puzzle": "fireplace_secret"}
+    },
+    "items": [
+      "rifle",
+      "box",
+      "wooden_chest",
+      "bookcase",
+      "fireplace",
+      "keypad"
+    ],
+    "puzzles": ["apartment_entrance_keypad", "fireplace_secret"]
+  },
+  {
+    "id": "bathroom",
+    "title": "Bathroom",
+    "description": "Ornate tiles cover the floor. There is a medicine cabinet over the sink.",
+    "first_time_message": "You step into the bathroom and glance around. Dust covers the mirror, and the pipes are caked with rust. You catch sight of yourself in the glass, and are frightened by the hollow look in your eyes.",
+    "details": {"phrase": "Not much else to see right now.."},
+    "rooms": {"north": "apartment_living_room"},
+    "items": ["cabinet"],
+    "puzzles": []
+  },
+  {
+    "id": "secret_room",
+    "title": "Secret Room",
+    "description": "It appears to be some kind of secret meeting room. Various posters supporting the revolution decorate the walls.",
+    "first_time_message": "You pull on the candle-holder above the mantle and watch as a small door in the fireplace slides open. You step through.",
+    "details": {"phrase": "One poster says 'Big Brother is always watching'"},
+    "rooms": {
+      "west": "apartment_living_room",
+      "north": "gallery",
+      "south": "intel_room"
+    },
+    "items": [],
+    "puzzles": []
+  }
+]

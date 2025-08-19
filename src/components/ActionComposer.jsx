@@ -1,69 +1,135 @@
-import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import Chip from './Chip';
+
+const VERBS = [
+  {label: 'Take', value: 'take'},
+  {label: 'Use', value: 'use'},
+  {label: 'Open', value: 'open'},
+  {label: 'Close', value: 'close'},
+  {label: 'Examine', value: 'examine'},
+];
 
 export default function ActionComposer({game, onCommand}) {
   const [verb, setVerb] = useState(null);
   const [noun, setNoun] = useState(null);
 
-  // ...existing code for extracting items, containers, etc. from game...
-  // For brevity, you will need to copy the relevant logic from your GameUI.jsx
-  // This includes: roomItems, invItems, containers, openContainers, etc.
+  const currentRoom = game?.rooms?.[game?.player?.location] || {};
+  const roomItemIds = currentRoom.items || [];
+  const roomItems = roomItemIds.map(id => game?.items?.[id]).filter(Boolean);
+  const invItems = (game?.player?.inventory || [])
+    .map(id => game?.items?.[id])
+    .filter(Boolean);
 
-  // Example placeholder logic:
-  const roomItems = [];
-  const invItems = [];
-  const containers = [];
-  const openContainers = [];
-  const useItems = [];
-  const npcs = [];
-
-  // Utilities
-  const doCmd = cmd => {
-    onCommand(cmd);
-    setVerb(null);
-    setNoun(null);
-  };
-
-  const heading = txt => <Text style={acStyles.prompt}>{txt}</Text>;
-
-  const chips = (arr, onPress, lab = it => it.name || it.handle, meta) => (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={acStyles.row}>
-      {arr.length === 0 ? (
-        <Text style={acStyles.prompt}>Nothing here</Text>
-      ) : null}
-      {arr.map(it => (
-        <Chip
-          key={it.handle}
-          label={lab(it)}
-          onPress={() => onPress(it)}
-          meta={meta ? meta(it) : undefined}
-        />
-      ))}
-    </ScrollView>
+  const doCmd = React.useCallback(
+    cmd => {
+      onCommand(cmd);
+      setVerb(null);
+      setNoun(null);
+    },
+    [onCommand],
   );
 
-  // Two-step flows and main UI logic would go here...
-  // For brevity, you will need to copy the rest of ActionComposer's logic from GameUI.jsx
+  let targets = [];
+  if (verb === 'take') {
+    // Only show items in the room that are not in inventory
+    targets = roomItems.filter(
+      it => !(game.player.inventory || []).includes(it.id),
+    );
+  } else if (verb === 'use' || verb === 'open' || verb === 'close') {
+    // Show both inventory and room items, but dedupe
+    const all = [...invItems, ...roomItems];
+    const seen = new Set();
+    targets = all.filter(it => {
+      if (seen.has(it.id)) {
+        return false;
+      }
+      seen.add(it.id);
+      return true;
+    });
+  } else if (verb === 'examine') {
+    // Examine: allow any item in inventory or in the room
+    const all = [...invItems, ...roomItems];
+    const seen = new Set();
+    targets = all.filter(it => {
+      if (seen.has(it.id)) {
+        return false;
+      }
+      seen.add(it.id);
+      return true;
+    });
+  }
 
-  return (
-    <View style={acStyles.wrap}>
-      {/* ...render logic for verbs, nouns, etc... */}
-      <Text style={acStyles.prompt}>ActionComposer UI goes here</Text>
-    </View>
-  );
+  useEffect(() => {
+    if (!game) {
+      return;
+    }
+    if (verb && noun) {
+      doCmd(`${verb} ${noun}`);
+    } else if (
+      verb &&
+      (verb === 'inventory' || verb === 'help') &&
+      targets.length === 0
+    ) {
+      doCmd(verb);
+    }
+  }, [verb, noun, game, targets.length, doCmd]);
+
+  if (!game) {
+    return null;
+  }
+
+  if (!verb) {
+    return (
+      <View style={acStyles.wrap}>
+        <Text style={acStyles.prompt}>Choose an action:</Text>
+        <View style={acStyles.verbGrid}>
+          {VERBS.map((v, i) => (
+            <View key={v.value} style={acStyles.verbCell}>
+              <Chip label={v.label} onPress={() => setVerb(v.value)} />
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  if (!noun && targets.length > 0) {
+    return (
+      <View style={acStyles.wrap}>
+        <Text style={acStyles.prompt}>Choose a target for "{verb}":</Text>
+        <ScrollView horizontal contentContainerStyle={acStyles.row}>
+          {targets.map(it => (
+            <Chip key={it.id} label={it.name} onPress={() => setNoun(it.id)} />
+          ))}
+        </ScrollView>
+        <Text style={acStyles.prompt} onPress={() => setVerb(null)}>
+          ← Back
+        </Text>
+      </View>
+    );
+  }
+
+  return null;
 }
 
 const acStyles = StyleSheet.create({
+  verbGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 4,
+    marginBottom: 2,
+    width: '100%',
+    maxWidth: '100%',
+  },
+  verbCell: {
+    margin: 2,
+    minWidth: 90,
+    alignItems: 'center',
+  },
   wrap: {
     backgroundColor: '#1b1f24',
     borderWidth: 1,
@@ -91,7 +157,15 @@ const acStyles = StyleSheet.create({
   },
   btnText: {color: '#fff', fontSize: 13},
   prompt: {color: '#9aa', fontSize: 12, marginTop: 6, marginBottom: 6},
-  row: {flexDirection: 'row', gap: 8, alignItems: 'center'},
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    maxWidth: '100%',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
