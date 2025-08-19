@@ -18,14 +18,42 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3a3a3a',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    // Raised rubber button effect (matching MovementBar)
+    backgroundColor: '#3a4248',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     marginRight: 8,
+    // Raised button shadows
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+    elevation: 6,
+    // Rubber-like border highlights
+    borderWidth: 1.5,
+    borderTopColor: '#4a5258',
+    borderLeftColor: '#4a5258',
+    borderRightColor: '#2a3036',
+    borderBottomColor: '#2a3036',
   },
-  chipIcon: {marginRight: 6},
-  chipText: {color: '#fff', fontSize: 14},
+  chipIcon: {
+    marginRight: 6,
+    textShadowColor: '#000',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 2,
+  },
+  chipText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    textShadowColor: '#000',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 2,
+  },
   badge: {
     color: '#cfe',
     fontSize: 12,
@@ -33,5 +61,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     backgroundColor: '#2a3b3a',
     borderRadius: 8,
+    marginLeft: 4,
+    textShadowColor: '#000',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 1,
   },
 });

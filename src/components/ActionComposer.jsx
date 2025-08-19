@@ -2,16 +2,6 @@ import React, {useState, useEffect} from 'react';
 import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import Chip from './Chip';
 
-const VERBS = [
-  {label: 'Take', value: 'take', icon: 'hand-paper-o'},
-  {label: 'Use', value: 'use', icon: 'play-circle'},
-  {label: 'Open', value: 'open', icon: 'folder-open'},
-  {label: 'Close', value: 'close', icon: 'lock'},
-  {label: 'Examine', value: 'examine', icon: 'search'},
-  {label: 'Look In', value: 'look in', icon: 'inbox'},
-  {label: 'Read', value: 'read', icon: 'book'},
-];
-
 export default function ActionComposer({game, onCommand, showBasicActions}) {
   const [verb, setVerb] = useState(null);
   const [noun, setNoun] = useState(null);
@@ -137,7 +127,7 @@ export default function ActionComposer({game, onCommand, showBasicActions}) {
   }
 
   if (!verb) {
-    // Organize actions into two columns for clarity
+    // Organize actions into explicit columns for better grouping
     const basicActions = showBasicActions
       ? [
           {label: 'Look Around', icon: 'eye', onPress: () => onCommand('look')},
@@ -153,32 +143,37 @@ export default function ActionComposer({game, onCommand, showBasicActions}) {
           },
         ]
       : [];
-    const allActions = [
-      ...basicActions.map(a => ({...a, isBasic: true})),
-      ...VERBS.map(v => ({
-        label: v.label,
-        icon: v.icon,
-        onPress: () => setVerb(v.value),
-        isBasic: false,
-      })),
+
+    // Define explicit columns for better organization
+    const leftColumnActions = [
+      ...basicActions.slice(0, Math.ceil(basicActions.length / 2)),
+      {label: 'Take', icon: 'hand-paper-o', onPress: () => setVerb('take')},
+      {label: 'Examine', icon: 'search', onPress: () => setVerb('examine')},
+      {label: 'Read', icon: 'book', onPress: () => setVerb('read')},
     ];
-    // Split into two columns
-    const leftCol = allActions.filter((_, i) => i % 2 === 0);
-    const rightCol = allActions.filter((_, i) => i % 2 === 1);
+
+    const rightColumnActions = [
+      ...basicActions.slice(Math.ceil(basicActions.length / 2)),
+      {label: 'Use', icon: 'play-circle', onPress: () => setVerb('use')},
+      {label: 'Open', icon: 'folder-open', onPress: () => setVerb('open')},
+      {label: 'Close', icon: 'lock', onPress: () => setVerb('close')},
+      {label: 'Look In', icon: 'inbox', onPress: () => setVerb('look in')},
+    ];
+
     return (
       <View style={acStyles.wrap}>
         <Text style={acStyles.prompt}>Choose an action:</Text>
-        <View style={acStyles.actionGridRow}>
-          <View style={acStyles.actionGridColLeft}>
-            {leftCol.map(a => (
-              <View key={a.label} style={acStyles.verbCell}>
+        <View style={acStyles.actionGrid}>
+          <View style={acStyles.actionColumn}>
+            {leftColumnActions.map(a => (
+              <View key={a.label} style={acStyles.actionButton}>
                 <Chip label={a.label} icon={a.icon} onPress={a.onPress} />
               </View>
             ))}
           </View>
-          <View style={acStyles.actionGridColRight}>
-            {rightCol.map(a => (
-              <View key={a.label} style={acStyles.verbCell}>
+          <View style={acStyles.actionColumn}>
+            {rightColumnActions.map(a => (
+              <View key={a.label} style={acStyles.actionButton}>
                 <Chip label={a.label} icon={a.icon} onPress={a.onPress} />
               </View>
             ))}
@@ -187,7 +182,6 @@ export default function ActionComposer({game, onCommand, showBasicActions}) {
       </View>
     );
   }
-
   if (!noun && targets.length > 0) {
     return (
       <View style={acStyles.wrap}>
@@ -208,44 +202,43 @@ export default function ActionComposer({game, onCommand, showBasicActions}) {
 }
 
 const acStyles = StyleSheet.create({
-  verbGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 4,
-    marginBottom: 2,
-    width: '100%',
-    maxWidth: '100%',
-  },
-  verbCell: {
-    margin: 2,
-    minWidth: 90,
-    alignItems: 'center',
-  },
   wrap: {
-    backgroundColor: '#1b1f24',
-    borderWidth: 1,
-    borderColor: '#2a3139',
+    // Recessed well effect (matching MovementBar)
+    backgroundColor: '#0f1419',
     borderRadius: 12,
     padding: 10,
-    marginBottom: 8,
+    marginBottom: 6,
+    // Recessed well shadows
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: -2,
+    borderWidth: 2,
+    borderColor: '#1a1f26',
+    // Inner shadow effect (simulated with gradient-like border)
+    borderTopColor: '#0a0d11',
+    borderLeftColor: '#0a0d11',
+    borderRightColor: '#1f242b',
+    borderBottomColor: '#1f242b',
   },
-  actionGridRow: {
+  actionGrid: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 6,
+  },
+  actionColumn: {
+    flex: 1,
+    gap: 4,
+  },
+  actionButton: {
     width: '100%',
-  },
-  actionGridColLeft: {
-    flex: 1,
-    alignItems: 'flex-end',
-    marginRight: 8,
-  },
-  actionGridColRight: {
-    flex: 1,
-    alignItems: 'flex-start',
-    marginLeft: 8,
+    minHeight: 38,
+    marginBottom: 4,
   },
   bar: {
     flexDirection: 'row',
@@ -265,15 +258,21 @@ const acStyles = StyleSheet.create({
     borderRadius: 8,
   },
   btnText: {color: '#fff', fontSize: 13},
-  prompt: {color: '#9aa', fontSize: 12, marginTop: 6, marginBottom: 6},
+  prompt: {
+    color: '#9aa',
+    fontSize: 13,
+    marginBottom: 2,
+    fontWeight: '500',
+  },
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
     maxWidth: '100%',
+    marginTop: 4,
   },
   header: {
     flexDirection: 'row',

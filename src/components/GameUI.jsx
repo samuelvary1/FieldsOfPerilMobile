@@ -353,8 +353,8 @@ const styles = StyleSheet.create({
   },
   text: {
     color: '#f0f3f6',
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 21,
     fontFamily: 'Courier',
     marginBottom: 6,
   },
