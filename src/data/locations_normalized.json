@@ -11,6 +11,17 @@
       "east": "secret_room",
       "south": "bathroom"
     },
+    "access_points": {
+      "west": {"locked": true, "puzzle": "apartment_entrance_keypad"}
+    },
+    "items": [
+      "rifle",
+      "box",
+      "wooden_chest",
+      "bookcase",
+      "fireplace",
+      "keypad"
+    ],
     "starting_location": true
   },
   {
@@ -57,6 +68,16 @@
     "description": "you find yourself in a cramped alley directly behind the apartment building you started out in.",
     "details": {"phrase": "this place is weird."},
     "rooms": {"north": "bombed_alley", "south": "alley"}
+  },
+  {
+    "id": "bathroom",
+    "header": "Bathroom",
+    "title": "bathroom",
+    "first_time_message": "You step into the bathroom and glance around. Dust covers the mirror, and the pipes are caked with rust. You catch sight of yourself in the glass, and are frightened by the hollow look in your eyes.",
+    "description": "Ornate tiles cover the floor. There is a medicine cabinet over the sink.",
+    "details": {"phrase": "Not much else to see right now.."},
+    "rooms": {"north": "apartment_living_room"},
+    "items": ["cabinet"]
   },
   {
     "id": "bombed_alley",

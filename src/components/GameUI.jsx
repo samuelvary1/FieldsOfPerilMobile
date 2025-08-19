@@ -33,29 +33,31 @@ export default function GameUI({navigation}) {
 
   const scrollViewRef = useRef(null);
 
-  // Boot game
+  // Boot game and clear autosave on launch
   useEffect(() => {
-    const rooms = {};
-    locations.forEach(room => {
-      rooms[room.id] = {...room, been_before: false};
-    });
-
-    const itemMap = {};
-    items.forEach(it => {
-      itemMap[it.id] = it;
-    });
-
-    setGame({
-      schemaVersion: 2,
-      rooms,
-      items: itemMap,
-      player: {location: 'apartment_living_room', inventory: []},
-      messages: {
-        help: 'Commands: look, take, drop, put, open, close, use, examine, read, inventory, help. Move with the controls.',
-      },
-      history: [],
-      state: {flags: {}, counters: {}},
-    });
+    const init = async () => {
+      await AsyncStorage.removeItem('fop_autosave');
+      const rooms = {};
+      locations.forEach(room => {
+        rooms[room.id] = {...room, been_before: false};
+      });
+      const itemMap = {};
+      items.forEach(it => {
+        itemMap[it.id] = it;
+      });
+      setGame({
+        schemaVersion: 2,
+        rooms,
+        items: itemMap,
+        player: {location: 'apartment_living_room', inventory: []},
+        messages: {
+          help: 'Commands: look, take, drop, put, open, close, use, examine, read, inventory, help. Move with the controls.',
+        },
+        history: [],
+        state: {flags: {}, counters: {}},
+      });
+    };
+    init();
   }, []);
 
   // Autosave
@@ -151,6 +153,35 @@ export default function GameUI({navigation}) {
             label={showTyping ? 'Hide' : 'Type'}
           />
           <TopIcon onPress={openSaveLoad} icon="save" label="Save" />
+          <TopIcon
+            onPress={async () => {
+              await AsyncStorage.removeItem('fop_autosave');
+              // Re-initialize game state
+              const rooms = {};
+              locations.forEach(room => {
+                rooms[room.id] = {...room, been_before: false};
+              });
+              const itemMap = {};
+              items.forEach(it => {
+                itemMap[it.id] = it;
+              });
+              setGame({
+                schemaVersion: 2,
+                rooms,
+                items: itemMap,
+                player: {location: 'apartment_living_room', inventory: []},
+                messages: {
+                  help: 'Commands: look, take, drop, put, open, close, use, examine, read, inventory, help. Move with the controls.',
+                },
+                history: [],
+                state: {flags: {}, counters: {}},
+              });
+              setLog([]);
+              Alert.alert('Game reset', 'Game state has been reset.');
+            }}
+            icon="refresh"
+            label="Reset"
+          />
         </View>
       </View>
 
@@ -194,39 +225,16 @@ export default function GameUI({navigation}) {
         </View>
       )}
 
-      {/* Actions compact */}
+      {/* Unified Action Pad: all eligible actions */}
       {showExtras && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions</Text>
-          <View style={styles.actionsRow}>
-            <ActionIcon
-              label="Look Around"
-              icon="search"
-              onPress={() => {
-                if (!game) {
-                  return;
-                }
-                appendLog(currentRoom.description || 'You look around.');
-              }}
-            />
-            <ActionIcon
-              label="Inventory"
-              icon="list"
-              onPress={() => handleCommand('inventory')}
-            />
-            <ActionIcon
-              label="Help"
-              icon="question-circle"
-              onPress={() => handleCommand('help')}
-            />
-          </View>
+          <ActionComposer
+            game={game}
+            onCommand={handleCommand}
+            showBasicActions
+          />
         </View>
       )}
-
-      {/* Recents collapsed by default - removed unused showRecents and recentCommands UI */}
-
-      {/* Action Composer: verbs & context targets (minimal typing) */}
-      <ActionComposer game={game} onCommand={handleCommand} />
 
       {/* Input (toggleable typing bar) */}
       {showTyping && (

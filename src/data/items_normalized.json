@@ -27,6 +27,36 @@
     "responses": {"examine": "It's got some kind of ornate design on the side."}
   },
   {
+    "id": "wooden_chest",
+    "name": "Wooden Chest",
+    "location": "apartment_living_room",
+    "description": "A simple wooden chest with gold leaf.",
+    "properties": {
+      "container": true,
+      "open": false,
+      "transparent": false,
+      "mobile": false
+    },
+    "contains": ["parchment", "skeleton_key"],
+    "tags": ["container", "furniture"],
+    "responses": {"examine": "It is carved ornately."}
+  },
+  {
+    "id": "cabinet",
+    "name": "Medicine Cabinet",
+    "location": "bathroom",
+    "description": "A basic medicine cabinet.",
+    "properties": {
+      "container": true,
+      "open": false,
+      "transparent": false,
+      "mobile": false
+    },
+    "contains": ["toothpaste"],
+    "tags": ["furniture"],
+    "responses": {"examine": "Not much else to see."}
+  },
+  {
     "id": "letter",
     "name": "Game Instructions Letter",
     "location": "box",

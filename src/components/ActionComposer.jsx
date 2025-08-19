@@ -3,14 +3,14 @@ import {View, Text, ScrollView, StyleSheet} from 'react-native';
 import Chip from './Chip';
 
 const VERBS = [
-  {label: 'Take', value: 'take'},
-  {label: 'Use', value: 'use'},
-  {label: 'Open', value: 'open'},
-  {label: 'Close', value: 'close'},
-  {label: 'Examine', value: 'examine'},
+  {label: 'Take', value: 'take', icon: 'hand-paper-o'},
+  {label: 'Use', value: 'use', icon: 'play-circle'},
+  {label: 'Open', value: 'open', icon: 'folder-open'},
+  {label: 'Close', value: 'close', icon: 'lock'},
+  {label: 'Examine', value: 'examine', icon: 'search'},
 ];
 
-export default function ActionComposer({game, onCommand}) {
+export default function ActionComposer({game, onCommand, showBasicActions}) {
   const [verb, setVerb] = useState(null);
   const [noun, setNoun] = useState(null);
 
@@ -84,9 +84,38 @@ export default function ActionComposer({game, onCommand}) {
       <View style={acStyles.wrap}>
         <Text style={acStyles.prompt}>Choose an action:</Text>
         <View style={acStyles.verbGrid}>
+          {showBasicActions && (
+            <>
+              <View style={acStyles.verbCell}>
+                <Chip
+                  label="Look Around"
+                  icon="eye"
+                  onPress={() => onCommand('look')}
+                />
+              </View>
+              <View style={acStyles.verbCell}>
+                <Chip
+                  label="Inventory"
+                  icon="list"
+                  onPress={() => onCommand('inventory')}
+                />
+              </View>
+              <View style={acStyles.verbCell}>
+                <Chip
+                  label="Help"
+                  icon="question-circle"
+                  onPress={() => onCommand('help')}
+                />
+              </View>
+            </>
+          )}
           {VERBS.map((v, i) => (
             <View key={v.value} style={acStyles.verbCell}>
-              <Chip label={v.label} onPress={() => setVerb(v.value)} />
+              <Chip
+                label={v.label}
+                icon={v.icon}
+                onPress={() => setVerb(v.value)}
+              />
             </View>
           ))}
         </View>

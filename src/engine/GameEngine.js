@@ -338,15 +338,26 @@ function evaluateCommand(input, game, setGame) {
         const names = contents.map(id => game.items[id]?.name || id).join(', ');
         return `Inside the ${container.handle}, you see: ${names}.`;
       }
-      if (raw.startsWith('look at ')) {
-        const itemName = raw.replace('look at ', '');
+      if (raw.startsWith('look at ') || raw.startsWith('examine ')) {
+        const itemName = raw.replace(/^(look at|examine) /, '');
         const item = getItemByHandle(itemName, game, fuse);
         if (!item) {
           return `You do not see a "${itemName}" here.`;
         }
-        return (
-          item.description || `You see nothing special about the ${itemName}.`
-        );
+        let desc =
+          item.description || `You see nothing special about the ${itemName}.`;
+        if (item.properties?.container && item.properties.open) {
+          const contents = Array.isArray(item.contains) ? item.contains : [];
+          if (contents.length) {
+            const names = contents
+              .map(id => game.items[id]?.name || id)
+              .join(', ');
+            desc += ` Inside, you see: ${names}.`;
+          } else {
+            desc += ' It is empty.';
+          }
+        }
+        return desc;
       }
       return location.description || 'You look around.';
     }
