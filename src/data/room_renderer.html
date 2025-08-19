@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fields of Peril – Bird's Eye Map</title>
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    #app { height: 100%; display: grid; grid-template-rows: auto auto 1fr; }
+    header { display: flex; gap: 8px; align-items: center; padding: 10px; background: #f3f5f8; border-bottom: 1px solid #dfe3ea; flex-wrap: wrap; }
+    header .badge { padding: 2px 8px; border-radius: 999px; background: #e8eef9; color: #27467a; font-size: 12px; }
+    #controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; padding: 8px 10px; border-bottom: 1px solid #eef1f5; background: #fafbfc; }
+    label { font-size: 14px; color: #334155; }
+    input[type="file"], textarea, select, button { font: inherit; }
+    textarea { width: 100%; height: 120px; padding: 8px; border-radius: 10px; border: 1px solid #cbd5e1; }
+    .col { display: grid; gap: 6px; }
+    button { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: white; cursor: pointer; }
+    button:hover { background: #f3f4f6; }
+    #stage { position: relative; overflow: hidden; }
+    .layerTabs { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #fff; position: absolute; top: 10px; left: 10px; border-radius: 12px; border: 1px solid #e5e7eb; box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 10; }
+    .layerTabs button { padding: 6px 10px; border-radius: 10px; border: 1px solid #e5e7eb; background: #f8fafc; }
+    .layerTabs button.active { background: #dbeafe; border-color: #bfdbfe; }
+    .legend { position: absolute; right: 10px; top: 10px; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 8px 10px; font-size: 13px; color: #334155; box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 10; }
+    .legend div { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+    .swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+    .swatch.locked { background: #fee2e2; border: 1px solid #ef4444; }
+    .swatch.normal { background: #e5f6ff; border: 1px solid #38bdf8; }
+    .swatch.vertical { background: #f5f3ff; border: 1px solid #a78bfa; }
+    .swatch.bidirect { background: #dcfce7; border: 1px solid #22c55e; }
+    .swatch.items { background: #fef9c3; border: 1px solid #eab308; }
+    .status { margin-left: auto; font-size: 13px; color: #475569; }
+    svg { width: 100%; height: 100%; background: radial-gradient(1000px 600px at 30% 20%, #f8fbff, #eef2f7); }
+    /* Room visual fixes */
+    .room { fill: #ffffff; stroke: #64748b; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+    .room.start { stroke: #16a34a; stroke-width: 2; }
+    .roomLabel { font-size: 12px; fill: #0f172a; }
+    .roomBadges { font-size: 14px; }
+    .arrow { stroke: #38bdf8; stroke-width: 2; fill: none; vector-effect: non-scaling-stroke; }
+    .arrow.locked { stroke: #ef4444; }
+    .arrow.vertical { stroke: #a78bfa; stroke-dasharray: 5 4; }
+    .arrow.bidirect { stroke: #22c55e; }
+    .dirLabel { font-size: 11px; fill: #334155; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+    .hud { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; background: rgba(255,255,255,0.9); border: 1px solid #e5e7eb; border-radius: 999px; padding: 6px 12px; font-size: 12px; color: #334155; z-index: 5; }
+    .tooltip { position: absolute; pointer-events: none; background: #111827; color: #fff; font-size: 12px; padding: 6px 8px; border-radius: 8px; opacity: 0; transition: opacity .12s ease; max-width: 420px; }
+    /* Dimming that preserves outlines */
+    .dim .room { fill-opacity: .2; stroke-opacity: .9; }
+    .dim .roomLabel, .dim .roomBadges, .dim .dirLabel, .dim .arrow { opacity: .35; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="badge">Fields of Peril – Map Builder</div>
+      <input id="file" type="file" accept=".json,application/json" />
+      <label>Items JSON <input id="itemsFile" type="file" accept=".json,application/json" /></label>
+      <button id="loadSample">Load sample rooms</button>
+      <button id="loadSampleItems">Load sample items</button>
+      <button id="renderBtn">Render JSON</button>
+      <span class="status" id="status"></span>
+    </header>
+    <div id="controls">
+      <div class="col">
+        <label>Rooms JSON</label>
+        <textarea id="jsonInput" placeholder="Paste your rooms JSON here"></textarea>
+      </div>
+      <div class="col">
+        <label>Items JSON (optional, supports your current schema with container nesting)</label>
+        <textarea id="itemsInput" placeholder='[{ "handle": "rifle", "name": "Mosin Nagant Rifle", "location": "apartment_living_room" }]'></textarea>
+      </div>
+    </div>
+    <div id="stage">
+      <div class="layerTabs" id="layerTabs"></div>
+      <div class="legend">
+        <div><span class="swatch normal"></span> one way passage</div>
+        <div><span class="swatch bidirect"></span> both directions</div>
+        <div><span class="swatch locked"></span> locked gate</div>
+        <div><span class="swatch vertical"></span> up or down</div>
+        <div><span class="swatch items"></span> items in room</div>
+        <div>🔒 lock, 🧩 puzzle, 🎒 items count</div>
+      </div>
+      <div class="hud">Scroll to zoom. Drag to pan. Click a room to highlight neighbors. Hover a room for items. Click empty space or press Esc to clear.</div>
+      <div class="tooltip" id="tooltip"></div>
+      <svg id="svg" viewBox="0 0 1200 800"></svg>
+    </div>
+  </div>
+
+  <script>
+    // Pan and zoom
+    (function enablePanZoom() {
+      const svg = document.getElementById('svg');
+      let view = { x: 0, y: 0, w: 1200, h: 800 };
+      let isPanning = false; let last = { x: 0, y: 0 };
+      function apply() { svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`); }
+      apply();
+      svg.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const scale = e.deltaY < 0 ? 0.9 : 1.1;
+        const mx = view.x + (e.offsetX / svg.clientWidth) * view.w;
+        const my = view.y + (e.offsetY / svg.clientHeight) * view.h;
+        view.w *= scale; view.h *= scale;
+        view.x = mx - (e.offsetX / svg.clientWidth) * view.w;
+        view.y = my - (e.offsetY / svg.clientHeight) * view.h;
+        apply();
+      }, { passive: false });
+      svg.addEventListener('mousedown', (e) => { isPanning = true; last.x = e.clientX; last.y = e.clientY; });
+      window.addEventListener('mouseup', () => isPanning = false);
+      window.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        const dx = (e.clientX - last.x) * (view.w / svg.clientWidth);
+        const dy = (e.clientY - last.y) * (view.h / svg.clientHeight);
+        view.x -= dx; view.y -= dy; last.x = e.clientX; last.y = e.clientY; apply();
+      });
+    })();
+
+    const fileInput = document.getElementById('file');
+    const itemsFile = document.getElementById('itemsFile');
+    const jsonInput = document.getElementById('jsonInput');
+    const itemsInput = document.getElementById('itemsInput');
+    const loadSampleBtn = document.getElementById('loadSample');
+    const loadSampleItemsBtn = document.getElementById('loadSampleItems');
+    const renderBtn = document.getElementById('renderBtn');
+    const statusEl = document.getElementById('status');
+    const svg = document.getElementById('svg');
+    const layerTabs = document.getElementById('layerTabs');
+    const tooltip = document.getElementById('tooltip');
+
+    // --- Auto-load items.json and locations.json if present ---
+    async function tryAutoLoad() {
+      try {
+        const locResp = await fetch('locations.json');
+        const itemsResp = await fetch('items.json');
+        if (!locResp.ok || !itemsResp.ok) return;
+        const locations = await locResp.json();
+        const items = await itemsResp.json();
+        jsonInput.value = JSON.stringify(locations, null, 2);
+        itemsInput.value = JSON.stringify(items, null, 2);
+        runRender(locations, items);
+      } catch (e) {
+        console.warn('Auto-load of locations.json/items.json failed:', e);
+      }
+    }
+    window.addEventListener('DOMContentLoaded', tryAutoLoad);
+
+    const DIRS = { north: [0,-1,0], south: [0,1,0], west: [-1,0,0], east: [1,0,0], up: [0,0,1], down: [0,0,-1] };
+    const OPP = { north: 'south', south: 'north', east: 'west', west: 'east', up: 'down', down: 'up' };
+    const PUZZLE_WORDS = /puzzle|keypad|padlock|trap|locked|gate|zipline|hatch|secret|bunker|booby|crypt|code|riddle/i;
+
+    function vecAdd(a, b) { return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+
+    function parseRooms(json) {
+      if (!Array.isArray(json)) throw new Error('Rooms JSON must be an array of room objects');
+      const byTitle = new Map();
+      json.forEach(r => { if (r && r.title) byTitle.set(r.title, r); });
+      if (byTitle.size === 0) throw new Error('No rooms with a title found');
+      let start = json.find(r => r.starting_location) || json[0];
+      return { byTitle, start };
+    }
+
+    function parseItems(json, byTitle) {
+      if (!json) return { roomToItems: new Map(), roomIndicators: new Map(), itemsByHandle: new Map() };
+      const arr = Array.isArray(json) ? json : [];
+      const itemsByHandle = new Map();
+      for (const it of arr) {
+        if (!it || !it.handle) continue;
+        itemsByHandle.set(String(it.handle).toLowerCase(), it);
+        if (it.alt_handle) itemsByHandle.set(String(it.alt_handle).toLowerCase(), it);
+      }
+      const roomToItems = new Map();
+      const roomIndicators = new Map();
+
+      function ensureRoomKey(room) {
+        if (!roomToItems.has(room)) roomToItems.set(room, []);
+        if (!roomIndicators.has(room)) roomIndicators.set(room, { hasLock: false, hasPuzzle: false });
+      }
+
+      function resolveRoom(loc) {
+        if (!loc) return null;
+        if (byTitle.has(loc)) return loc;
+        const seen = new Set();
+        let cur = itemsByHandle.get(String(loc).toLowerCase());
+        while (cur && !byTitle.has(cur.location)) {
+          if (seen.has(cur)) break;
+          seen.add(cur);
+          cur = itemsByHandle.get(String(cur.location || '').toLowerCase());
+        }
+        if (cur && byTitle.has(cur.location)) return cur.location;
+        return null;
+      }
+
+      function describeItem(it) {
+        const tags = Array.isArray(it.tags) ? it.tags.join(', ') : '';
+        const locked = !!(it.properties && it.properties.locked);
+        const code = (typeof it.code !== 'undefined') ? ` code:${it.code}` : '';
+        const tagStr = tags ? ` [${tags}]` : '';
+        const lockStr = locked ? ' 🔒' : '';
+        return `${it.name || it.handle}${lockStr}${code}${tagStr}`;
+      }
+
+      for (const it of arr) {
+        if (!it) continue;
+        const room = resolveRoom(it.location);
+        if (!room) continue;
+        ensureRoomKey(room);
+        roomToItems.get(room).push(describeItem(it));
+        const indicator = roomIndicators.get(room);
+        if ((it.properties && (it.properties.locked || it.properties.keypad)) || (Array.isArray(it.tags) && it.tags.some(t => /access point|lock|keypad/i.test(t))) ) {
+          indicator.hasLock = true;
+        }
+        const textBlob = `${it.description || ''} ${(it.responses && Object.values(it.responses||{}).join(' ')) || ''}`;
+        if (PUZZLE_WORDS.test(textBlob) || typeof it.code !== 'undefined') {
+          indicator.hasPuzzle = true;
+        }
+      }
+
+      return { roomToItems, roomIndicators, itemsByHandle };
+    }
+
+    function layoutGrid(byTitle, startTitle) {
+      const coords = new Map();
+      const occupied = new Set();
+      function key(p){ return p.join(','); }
+      function place(title, pos) {
+        let p = pos.slice();
+        let attempts = 0;
+        while (occupied.has(key(p))) {
+          const [x,y,z] = pos;
+          const r = 1 + Math.floor(attempts/8);
+          const offsets = [ [r,0,0],[0,r,0],[-r,0,0],[0,-r,0],[r,r,0],[-r,r,0],[r,-r,0],[-r,-r,0] ];
+          const o = offsets[attempts % offsets.length];
+          p = [x + o[0], y + o[1], z];
+          attempts++; if (attempts > 2000) break;
+        }
+        coords.set(title, p); occupied.add(key(p));
+      }
+      const q = [];
+      place(startTitle, [0,0,0]); q.push(startTitle);
+      const visited = new Set([startTitle]);
+      while (q.length) {
+        const cur = q.shift();
+        const room = byTitle.get(cur); if (!room) continue;
+        const base = coords.get(cur);
+        const doors = room.rooms || {};
+        for (const [dir, target] of Object.entries(doors)) {
+          if (!byTitle.has(target)) continue;
+          const delta = DIRS[dir];
+          const proposed = delta ? vecAdd(base, delta) : vecAdd(base, [0,0,0]);
+          if (!coords.has(target)) place(target, proposed);
+          if (!visited.has(target)) { visited.add(target); q.push(target); }
+        }
+      }
+      return coords;
+    }
+
+    function buildEdges(byTitle) {
+      const temp = new Map();
+      for (const [title, room] of byTitle.entries()) {
+        const r = room.rooms || {}; const ap = room.access_points || {};
+        for (const [dir, to] of Object.entries(r)) {
+          const vertical = (dir === 'up' || dir === 'down');
+          let locked = false;
+          const apEntry = ap && ap[dir];
+          if (apEntry && typeof apEntry === 'object' && apEntry.locked === true) locked = true;
+          const key = [title, to].sort().join('::') + (vertical ? '::v' : '::h');
+          if (!temp.has(key)) temp.set(key, { a: title, b: to, dirs: new Set(), lockedDirs: new Set(), vertical });
+          const rec = temp.get(key);
+          rec.dirs.add(dir);
+          if (locked) rec.lockedDirs.add(dir);
+        }
+      }
+      const edges = [];
+      for (const rec of temp.values()) {
+        const dirs = Array.from(rec.dirs);
+        const bidirect = dirs.includes('east') && dirs.includes('west') ||
+                         dirs.includes('north') && dirs.includes('south') ||
+                         dirs.includes('up') && dirs.includes('down');
+        edges.push({ a: rec.a, b: rec.b, bidirect, dirs, lockedDirs: rec.lockedDirs, vertical: rec.vertical });
+      }
+      return edges;
+    }
+
+    function runRender(roomsJson, itemsJson) {
+      const { byTitle, start } = parseRooms(roomsJson);
+      const coords = layoutGrid(byTitle, start.title);
+      const edges = buildEdges(byTitle);
+      const { roomToItems, roomIndicators } = parseItems(itemsJson, byTitle);
+      render(byTitle, coords, edges, roomToItems, roomIndicators);
+      const itemCount = Array.from(roomToItems.values()).reduce((a,b)=>a+b.length,0);
+      statusEl.textContent = `${byTitle.size} rooms mapped, ${itemCount} items placed`;
+    }
+
+    function render(byTitle, coords, edges, roomToItems, roomIndicators) {
+      svg.innerHTML = '';
+
+      // Background to catch clicks for clearing selection
+      const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bg.setAttribute('x', 0); bg.setAttribute('y', 0); bg.setAttribute('width', '12000'); bg.setAttribute('height', '8000');
+      bg.setAttribute('fill', 'transparent');
+      bg.addEventListener('click', () => clearSelection());
+      svg.appendChild(bg);
+
+      const layers = new Map();
+      for (const [title, p] of coords.entries()) {
+        const z = p[2];
+        if (!layers.has(z)) layers.set(z, { nodes: [], edges: [] });
+        layers.get(z).nodes.push({ title, p });
+      }
+      edges.forEach(e => {
+        const a = coords.get(e.a); const b = coords.get(e.b); if (!a||!b) return;
+        const z = a[2]; if (!layers.has(z)) layers.set(z, { nodes: [], edges: [] });
+        layers.get(z).edges.push({ ...e, aP: a, bP: b });
+        if (e.vertical && b[2] !== z) {
+          if (!layers.has(b[2])) layers.set(b[2], { nodes: [], edges: [] });
+          layers.get(b[2]).edges.push({ ...e, aP: a, bP: b });
+        }
+      });
+
+      const zs = Array.from(layers.keys()).sort((a,b)=>a-b);
+      layerTabs.innerHTML = '';
+      let activeZ = Number(localStorage.getItem('fop_active_layer') ?? zs[0] ?? 0);
+      if (!zs.includes(activeZ)) activeZ = zs[0] ?? 0;
+      zs.forEach(z => {
+        const b = document.createElement('button');
+        b.textContent = `Layer z=${z}`;
+        if (z === activeZ) b.classList.add('active');
+        b.addEventListener('click', ()=>{ localStorage.setItem('fop_active_layer', z); drawLayer(z); });
+        layerTabs.appendChild(b);
+      });
+      if (zs.length === 0) layerTabs.textContent = 'No layers to display';
+
+      let currentSelected = null;
+
+      function drawLayer(z) {
+        svg.querySelectorAll(':scope > :not(defs):not(rect)').forEach(n => n.remove());
+        for (const btn of layerTabs.querySelectorAll('button')) btn.classList.toggle('active', btn.textContent === `Layer z=${z}`);
+        const layer = layers.get(z); if (!layer) return;
+        const cell = 180; const pad = 90;
+        const pts = layer.nodes.map(n => n.p);
+        const minX = Math.min(...pts.map(p=>p[0]));
+        const minY = Math.min(...pts.map(p=>p[1]));
+        const toXY = (p) => [ (p[0]-minX)*cell + pad, (p[1]-minY)*cell + pad ];
+
+        // defs
+        const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+        defs.innerHTML = `
+          <marker id="arrow-end" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/>
+          </marker>
+          <marker id="arrow-end-locked" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444"/>
+          </marker>
+          <marker id="arrow-end-vertical" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa"/>
+          </marker>
+        `;
+        svg.appendChild(defs);
+
+        // draw edges first
+        const edgeEls = [];
+        function drawEdge(e) {
+          const [x1,y1] = toXY(e.aP); const [x2,y2] = toXY(e.bP);
+          const dx = x2-x1, dy = y2-y1; const len = Math.hypot(dx,dy) || 1; const ux=dx/len, uy=dy/len;
+          const inset = 48;
+          let sx = x1 + ux*inset, sy = y1 + uy*inset;
+          let tx = x2 - ux*inset, ty = y2 - uy*inset;
+          const perp = [-uy, ux];
+          const off = e.bidirect ? 10 : 0;
+          sx += perp[0]*off; sy += perp[1]*off; tx += perp[0]*off; ty += perp[1]*off;
+
+          const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+          path.dataset.key = `${e.a}__${e.b}`;
+          const d = `M ${sx} ${sy} L ${tx} ${ty}`;
+          path.setAttribute('d', d);
+          let klass = 'arrow edge';
+          if (e.vertical) klass += ' vertical';
+          if (e.bidirect) klass += ' bidirect';
+          if (e.lockedDirs && e.lockedDirs.size) klass += ' locked';
+          path.setAttribute('class', klass);
+
+          const lockedAny = e.lockedDirs && e.lockedDirs.size;
+          const endMarker = e.vertical ? 'url(#arrow-end-vertical)' : lockedAny ? 'url(#arrow-end-locked)' : 'url(#arrow-end)';
+          if (e.bidirect) {
+            path.setAttribute('marker-end', endMarker);
+            path.setAttribute('marker-start', endMarker);
+          } else {
+            const dir = e.dirs[0];
+            const forward = (dir === 'east' && x2>x1) || (dir === 'west' && x1>x2) || (dir === 'north' && y1>y2) || (dir === 'south' && y2>y1) || (dir === 'up' && e.bP[2]>e.aP[2]) || (dir === 'down' && e.aP[2]>e.bP[2]);
+            if (forward) path.setAttribute('marker-end', endMarker); else path.setAttribute('marker-start', endMarker);
+          }
+          svg.appendChild(path);
+
+          const labelA = document.createElementNS('http://www.w3.org/2000/svg','text');
+          const labelB = document.createElementNS('http://www.w3.org/2000/svg','text');
+          labelA.setAttribute('class','dirLabel edgeLabel'); labelB.setAttribute('class','dirLabel edgeLabel');
+          const la = labelFor(e, true); const lb = labelFor(e, false);
+          labelA.textContent = la; labelB.textContent = lb;
+          const gap = 14;
+          labelA.setAttribute('x', sx + (-ux)*gap + perp[0]*8);
+          labelA.setAttribute('y', sy + (-uy)*gap + perp[1]*8);
+          labelB.setAttribute('x', tx + (ux)*gap + perp[0]*8);
+          labelB.setAttribute('y', ty + (uy)*gap + perp[1]*8);
+          svg.appendChild(labelA); svg.appendChild(labelB);
+
+          const midx = (sx+tx)/2, midy = (sy+ty)/2;
+          if (e.lockedDirs && e.lockedDirs.size) addGlyph('🔒', midx, midy);
+          if (e.vertical && e.bidirect) addGlyph('⇅', midx+10, midy);
+
+          function addGlyph(txt, gx, gy){
+            const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+            t.setAttribute('x', gx); t.setAttribute('y', gy);
+            t.setAttribute('text-anchor','middle');
+            t.setAttribute('class','dirLabel');
+            t.textContent = txt; svg.appendChild(t);
+          }
+
+          edgeEls.push(path);
+        }
+
+        function labelFor(e, fromA) {
+          if (e.bidirect) {
+            for (const d of e.dirs) {
+              if (fromA && (d==='east'||d==='south'||d==='up')) return d;
+              if (!fromA && (d==='west'||d==='north'||d==='down')) return d;
+            }
+            return fromA ? e.dirs[0] : OPP[e.dirs[0]] || '';
+          } else {
+            return fromA ? e.dirs[0] : OPP[e.dirs[0]] || '';
+          }
+        }
+
+        layer.edges.forEach(drawEdge);
+
+        // draw rooms
+        const nodeEls = new Map();
+        layer.nodes.forEach(n => {
+          const room = byTitle.get(n.title);
+          const [x,y] = toXY(n.p); const w = 170, h = 92;
+          const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+          g.setAttribute('data-title', n.title);
+          g.setAttribute('class', 'node');
+          const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+          rect.setAttribute('x', x - w/2); rect.setAttribute('y', y - h/2);
+          rect.setAttribute('width', w); rect.setAttribute('height', h);
+          rect.setAttribute('rx', 12); rect.setAttribute('ry', 12); // ensure rounded corners across browsers
+          rect.setAttribute('class', `room${room.starting_location ? ' start' : ''}`);
+
+          const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+          text.setAttribute('x', x); text.setAttribute('y', y-8);
+          text.setAttribute('text-anchor','middle');
+          text.setAttribute('class','roomLabel');
+          text.textContent = room.header || room.title;
+
+          const badges = document.createElementNS('http://www.w3.org/2000/svg','text');
+          badges.setAttribute('x', x); badges.setAttribute('y', y+18);
+          badges.setAttribute('text-anchor','middle'); badges.setAttribute('class','roomBadges');
+          const items = roomToItems.get(n.title) || [];
+          const apLock = (room.access_points && Object.values(room.access_points).some(v => (v && typeof v==='object' && v.locked))) || false;
+          const itemInd = roomIndicators.get(n.title) || { hasLock:false, hasPuzzle:false };
+          const hasLock = apLock || itemInd.hasLock;
+          const hasPuzzle = itemInd.hasPuzzle || PUZZLE_WORDS.test(((room.details && room.details.phrase) || '') + ' ' + (room.description || ''));
+          const ic = items.length ? ` 🎒${items.length}` : '';
+          const lk = hasLock ? ' 🔒' : '';
+          const pz = hasPuzzle ? ' 🧩' : '';
+          badges.textContent = `${lk}${pz}${ic}`.trim();
+
+          // tooltip
+          function showTip(ev){
+            const title = room.header || room.title;
+            const lines = [];
+            if (hasLock) lines.push('🔒 <b>Lock or access point present</b>');
+            if (hasPuzzle) lines.push('🧩 <b>Puzzle or code present</b>');
+            if (room.rooms) {
+              const exits = Object.entries(room.rooms).map(([d,t]) => `• ${d} → ${t}${room.access_points && room.access_points[d] && room.access_points[d].locked ? ' 🔒' : ''}`);
+              if (exits.length) lines.push('<b>Exits:</b><br>' + exits.map(escapeHtml).join('<br>'));
+            }
+            // Entrances (reverse lookup)
+            const entrances = [];
+            for (const [otherTitle, otherRoom] of byTitle.entries()) {
+              for (const [d, t] of Object.entries(otherRoom.rooms || {})) if (t === n.title) entrances.push(`• ${d} ← ${otherTitle}${otherRoom.access_points && otherRoom.access_points[d] && otherRoom.access_points[d].locked ? ' 🔒' : ''}`);
+            }
+            if (entrances.length) lines.push('<b>Entrances:</b><br>' + entrances.map(escapeHtml).join('<br>'));
+            if (items.length) { lines.push('<b>Items:</b>'); items.forEach(i => lines.push('• ' + escapeHtml(i))); } else { lines.push('<i>No items in this room</i>'); }
+            tooltip.innerHTML = `<strong>${escapeHtml(title)}</strong><br/>` + lines.join('<br/>');
+            tooltip.style.left = (ev.clientX + 12) + 'px';
+            tooltip.style.top = (ev.clientY + 12) + 'px';
+            tooltip.style.opacity = 1;
+          }
+          function hideTip(){ tooltip.style.opacity = 0; }
+
+          rect.addEventListener('mousemove', showTip); rect.addEventListener('mouseleave', hideTip);
+          text.addEventListener('mousemove', showTip); text.addEventListener('mouseleave', hideTip);
+
+          // selection
+          rect.addEventListener('click', () => toggleSelection(n.title));
+          text.addEventListener('click', () => toggleSelection(n.title));
+
+          g.appendChild(rect); g.appendChild(text); g.appendChild(badges);
+          svg.appendChild(g);
+          nodeEls.set(n.title, g);
+        });
+
+        function toggleSelection(title){
+          if (currentSelected === title) { clearSelection(); return; }
+          currentSelected = title;
+          applySelection();
+        }
+        function clearSelection(){ currentSelected = null; applySelection(); }
+        function applySelection(){
+          const allNodes = Array.from(svg.querySelectorAll('g.node'));
+          const allEdges = Array.from(svg.querySelectorAll('path.edge, text.edgeLabel'));
+          allNodes.forEach(n => n.classList.add('dim'));
+          allEdges.forEach(e => e.classList.add('dim'));
+          if (!currentSelected) { allNodes.forEach(n=>n.classList.remove('dim')); allEdges.forEach(e=>e.classList.remove('dim')); return; }
+          const keepRooms = new Set([currentSelected]);
+          const keepEdges = [];
+          layer.edges.forEach(e => {
+            if (e.a === currentSelected || e.b === currentSelected) {
+              keepRooms.add(e.a); keepRooms.add(e.b);
+              keepEdges.push(`${e.a}__${e.b}`);
+            }
+          });
+          keepRooms.forEach(t => { const el = svg.querySelector(`g.node[data-title="${CSS.escape(t)}"]`); if (el) el.classList.remove('dim'); });
+          keepEdges.forEach(k => { svg.querySelectorAll(`[data-key="${k}"]`).forEach(el => el.classList.remove('dim')); });
+          // thicken selected outline
+          svg.querySelectorAll('g.node rect.room').forEach(r => r.style.strokeWidth = '1.5');
+          const selRect = svg.querySelector(`g.node[data-title="${CSS.escape(currentSelected)}"] rect.room`);
+          if (selRect) selRect.style.strokeWidth = '3';
+        }
+
+        // Initial no-selection
+        applySelection();
+        // Esc to clear
+        window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') clearSelection(); });
+      }
+
+      drawLayer(activeZ);
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
+    }
+
+    async function handleFile(file, intoTextarea) {
+      const text = await file.text();
+      intoTextarea.value = text;
+      return JSON.parse(text);
+    }
+
+    fileInput.addEventListener('change', async e => {
+      const [file] = e.target.files; if (!file) return;
+      const rooms = await handleFile(file, jsonInput);
+      let items = null; try { items = JSON.parse(itemsInput.value || 'null'); } catch {}
+      runRender(rooms, items);
+    });
+
+    itemsFile.addEventListener('change', async e => {
+      const [file] = e.target.files; if (!file) return;
+      const items = await handleFile(file, itemsInput);
+      let rooms = null; try { rooms = JSON.parse(jsonInput.value || 'null'); } catch {}
+      if (rooms) runRender(rooms, items);
+    });
+
+    renderBtn.addEventListener('click', () => {
+      try { const rooms = JSON.parse(jsonInput.value); let items = null; try { items = JSON.parse(itemsInput.value || 'null'); } catch {}; runRender(rooms, items); }
+      catch(e){ alert(e.message || String(e)); }
+    });
+
+    loadSampleBtn.addEventListener('click', () => {
+      const sample = [
+        { starting_location: true, header: 'Apartment Living Room', title: 'apartment_living_room', rooms: { west: '3rd_floor_stairs', east: 'secret_room', south: 'bathroom' }, access_points: { east: { locked: true } } },
+        { header: 'Bathroom', title: 'bathroom', rooms: { north: 'apartment_living_room' } },
+        { header: 'Secret Room', title: 'secret_room', rooms: { west: 'apartment_living_room', north: 'gallery', south: 'intel_room' } },
+        { header: 'The Gallery', title: 'gallery', rooms: { south: 'secret_room' } },
+        { header: 'Intel Room', title: 'intel_room', rooms: { north: 'secret_room' } },
+        { header: 'Third Floor Stairs', title: '3rd_floor_stairs', rooms: { east: 'apartment_living_room', down: '2nd_floor_stairs' }, access_points: { east: { locked: false } } },
+        { header: 'Second Floor Stairs', title: '2nd_floor_stairs', rooms: { up: '3rd_floor_stairs', down: '1st_floor_stairs' } },
+        { header: 'First Floor Stairs', title: '1st_floor_stairs', rooms: { up: '2nd_floor_stairs', west: 'the_street', down: 'cellar_1' } },
+        { header: 'Street', title: 'the_street', rooms: { north: 'apartment_building_north', south: 'apartment_building_south', east: '1st_floor_stairs' } }
+      ];
+      jsonInput.value = JSON.stringify(sample, null, 2);
+      let items = [
+        { handle:'rifle', name: 'Mosin Nagant Rifle', location: 'apartment_living_room', tags:['weapon'], properties:{ mobile:true } },
+        { handle:'wooden chest', name:'Wooden Chest', location:'apartment_living_room', properties:{ container:true, open:false } , contents:['parchment','skeleton key']},
+        { handle:'skeleton key', name:'Skeleton Key', location:'wooden chest', tags:['key'] },
+        { handle:'keypad', name:'Wall Keypad', location:'apartment_living_room', tags:['access point'], properties:{ locked:true }, code:42 }
+      ];
+      itemsInput.value = JSON.stringify(items, null, 2);
+      runRender(sample, items);
+    });
+
+    loadSampleItemsBtn.addEventListener('click', () => {
+      let items = [
+        { handle:'medkit', name: 'Medkit', location: 'the_street' },
+        { handle:'rope', name: 'Rope', location: 'garden' }
+      ];
+      itemsInput.value = JSON.stringify(items, null, 2);
+      try { const rooms = JSON.parse(jsonInput.value); runRender(rooms, items); } catch {}
+    });
+
+    // Render on load if textarea is prefilled
+    try { const preset = JSON.parse(jsonInput.value || 'null'); if (preset) runRender(preset, JSON.parse(itemsInput.value || 'null')); } catch {}
+  </script>
+</body>
+</html>
