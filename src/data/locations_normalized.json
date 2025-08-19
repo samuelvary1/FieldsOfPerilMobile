@@ -31,16 +31,22 @@
     "first_time_message": "You step out into the stairwell. The air is thick with dust.",
     "description": "A narrow stairwell with creaky steps. The apartment is to the east.",
     "details": {"phrase": "You hear faint noises from below."},
-    "rooms": {"east": "apartment_living_room", "down": "lobby"}
+    "rooms": {"east": "apartment_living_room", "down": "2nd_floor_stairs"}
   },
   {
-    "id": "lobby",
-    "header": "Lobby",
-    "title": "lobby",
-    "first_time_message": "You reach the lobby. It's eerily quiet.",
-    "description": "A small lobby with mailboxes lining the wall.",
-    "details": {"phrase": "A single letter sits in one of the mailboxes."},
-    "rooms": {"up": "3rd_floor_stairs", "south": "street"}
+    "id": "1st_floor_stairs",
+    "header": "First Floor Stairs",
+    "title": "1st_floor_stairs",
+    "first_time_message": "You arrive on the first floor of the old apartment building.",
+    "description": "you are standing in the entranceway on the first floor of the apartment building",
+    "details": {
+      "phrase": "not much else to see here..."
+    },
+    "rooms": {
+      "up": "2nd_floor_stairs",
+      "west": "street",
+      "down": "cellar_1"
+    }
   },
   {
     "id": "street",
@@ -260,5 +266,46 @@
     "description": "Wow. This is getting serious. Do you really want to try and proceed down the tunnel?",
     "details": {"phrase": "Man, that's a big padlock on the gate."},
     "rooms": {"up": "rebel_war_room"}
+  },
+  {
+    "id": "2nd_floor_stairs",
+    "header": "Second Floor Stairs",
+    "title": "2nd_floor_stairs",
+    "first_time_message": "You arrive on the second floor of the old apartment building.",
+    "description": "You're standing on the second floor of the apartment building.",
+    "details": {
+      "phrase": "Some old lamps flicker in the hallway. It's a wonder there's still any power here."
+    },
+    "rooms": {
+      "up": "3rd_floor_stairs",
+      "down": "1st_floor_stairs"
+    }
+  },
+  {
+    "id": "cellar_1",
+    "header": "Cellar",
+    "title": "cellar_1",
+    "first_time_message": "First time message stepping into the cellar of the apartment building.",
+    "description": "Lotta cobwebs down here. There's a heavy looking door built into the eastern wall.",
+    "details": {
+      "phrase": "looks like there's some sort of mechanical keypad on the heavy door."
+    },
+    "rooms": {
+      "east": "vault_1",
+      "up": "1st_floor_stairs"
+    }
+  },
+  {
+    "id": "vault_1",
+    "header": "Apartment Building Vault Chamber",
+    "title": "vault_1",
+    "first_time_message": "You solve the keypad puzzle and enter the vault!",
+    "description": "description of the vault to go here.",
+    "details": {
+      "phrase": "detailed description of the vault to go here."
+    },
+    "rooms": {
+      "west": "cellar_1"
+    }
   }
 ]
