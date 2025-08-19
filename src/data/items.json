@@ -1,24 +1,20 @@
 [
   {
-    "handle": "rifle",
-    "alt_handle": "hunting rifle",
+    "id": "rifle",
     "name": "Mosin Nagant Rifle",
-    "description": "A battered Mosin Nagant rifle.",
     "location": "apartment_living_room",
-    "properties": {
-      "mobile": true
-    },
+    "description": "A battered Mosin Nagant rifle.",
+    "properties": {"mobile": true},
     "tags": ["weapon"],
     "responses": {
-      "examine": "You can just make out initials carved in the stock: \"V.L.\""
+      "examine": "You can just make out initials carved in the stock: 'V.L.'"
     }
   },
   {
-    "handle": "box",
-    "alt_handle": "stationery box",
+    "id": "box",
     "name": "Stationery Box",
-    "description": "That is one fine lookin' box.",
     "location": "apartment_living_room",
+    "description": "That is one fine lookin' box.",
     "properties": {
       "container": true,
       "open": true,
@@ -26,133 +22,131 @@
       "mobile": false,
       "locked": false
     },
-    "contents": ["letter"],
+    "contains": ["letter"],
     "tags": ["container", "furniture"],
-    "responses": {
-      "examine": "It's got some kind of ornate design on the side."
-    }
+    "responses": {"examine": "It's got some kind of ornate design on the side."}
   },
   {
-    "handle": "letter",
-    "name": "Game Instructions Letter",
-    "description": "An interesting looking letter... you should probably read it.",
-    "location": "box",
-    "properties": {
-      "letter": true,
-      "mobile": true
-    },
-    "tags": ["clue", "intro"],
-    "responses": {
-      "read": "Welcome to Sam Vary's FIELDS OF PERIL, an interactive text-based adventure game that will thrill you to the marrow.\n\nHERE are some important tips you might want to keep in mind:\n\n* When you enter a location for the first time, you will see a description that only appears once. Any clues about objects you can pick up are usually going to be mentioned here. However, some items or clues may be discovered by typing 'look' or 'look closer'.\n\n* There is an important container system in the game - boxes, treasure chests and the like can be opened and searched for important items and clues.\n\n* Access points are a system in the game that must be solved in order to proceed to certain locations. Some access points are keypads, which must be opened with the correct numerical code, and some access points are locked doors that must be opened by discovering the correct key somewhere in the game.\n\n* Certain riddles may contain keypad codes by translating the answer into numbers, i.e. A = 1, B = 2, etc.\n\n* You may encounter characters in the game that will give you important items, keypad codes, or keys if you answer a question that they ask you correctly, or you give them an item that they want that you've discovered somewhere else in the game.\n\n* Type 'help' or 'h' for a list of available in-game commands.\n\n* This is more Monkey Island than King's Quest: You can't die, you can only get stuck.\n\n* To get the game rolling, you'll want to open the wooden chest in the apartment living room, check inside of the wooden chest for clues.\n\n\n GOOD LUCK! :)"
-    }
-  },
-  {
-    "handle": "wooden chest",
-    "alt_handle": "chest",
+    "id": "wooden_chest",
     "name": "Wooden Chest",
-    "description": "A simple wooden chest with gold leaf.",
     "location": "apartment_living_room",
+    "description": "A simple wooden chest with gold leaf.",
     "properties": {
       "container": true,
       "open": false,
       "transparent": false,
       "mobile": false
     },
-    "contents": ["parchment", "skeleton key"],
+    "contains": ["parchment", "skeleton_key"],
     "tags": ["container", "furniture"],
-    "responses": {
-      "examine": "It is carved ornately."
-    }
+    "responses": {"examine": "It is carved ornately."}
   },
   {
-    "handle": "skeleton key",
-    "alt_handle": "key",
-    "name": "Skeleton Key",
-    "description": "A skeleton key.",
-    "location": "treasure chest",
+    "id": "cabinet",
+    "name": "Medicine Cabinet",
+    "location": "bathroom",
+    "description": "A basic medicine cabinet.",
     "properties": {
-      "mobile": true
+      "container": true,
+      "open": false,
+      "transparent": false,
+      "mobile": false
     },
+    "contains": ["toothpaste"],
+    "tags": ["furniture"],
+    "responses": {"examine": "Not much else to see."}
+  },
+  {
+    "id": "letter",
+    "name": "Game Instructions Letter",
+    "location": "box",
+    "description": "An interesting looking letter... you should probably read it.",
+    "properties": {"letter": true, "mobile": true},
+    "tags": ["clue", "intro"],
+    "responses": {"read": "Welcome to Sam Vary's FIELDS OF PERIL..."}
+  },
+  {
+    "id": "wooden_chest",
+    "name": "Wooden Chest",
+    "location": "apartment_living_room",
+    "description": "A simple wooden chest with gold leaf.",
+    "properties": {
+      "container": true,
+      "open": false,
+      "transparent": false,
+      "mobile": false
+    },
+    "contains": ["parchment", "skeleton_key"],
+    "tags": ["container", "furniture"],
+    "responses": {"examine": "It is carved ornately."}
+  },
+  {
+    "id": "skeleton_key",
+    "name": "Skeleton Key",
+    "location": "wooden_chest",
+    "description": "A skeleton key.",
+    "properties": {"mobile": true},
     "code": 4918,
     "tags": ["key"],
-    "responses": {
-      "examine": "Not much else to see."
-    }
+    "responses": {"examine": "Not much else to see."}
   },
   {
-    "handle": "parchment",
+    "id": "parchment",
     "name": "Charred Parchment",
+    "location": "wooden_chest",
     "description": "A charred bit of parchment with some writing on it.",
-    "location": "wooden chest",
-    "properties": {
-      "letter": true,
-      "mobile": true
-    },
+    "properties": {"letter": true, "mobile": true},
     "tags": ["clue"],
     "responses": {
       "read": "To open the apartment entrance, please type 'use keypad' and enter the answer to the Ultimate Question of Life, the Universe, and Everything."
     }
   },
   {
-    "handle": "bookcase",
+    "id": "bookcase",
     "name": "Odd Bookcase",
+    "location": "apartment_living_room",
     "description": "That bookcase looks a little odd...",
-    "location": "apartment_living_room",
-    "properties": {
-      "mobile": false,
-      "direction": "east"
-    },
+    "properties": {"mobile": false, "direction": "east"},
     "tags": ["furniture"]
   },
   {
-    "handle": "fireplace",
+    "id": "fireplace",
     "name": "Stone Fireplace",
-    "description": "An imposing stone fireplace.",
     "location": "apartment_living_room",
-    "properties": {
-      "mobile": false
-    },
+    "description": "An imposing stone fireplace.",
+    "properties": {"mobile": false},
     "tags": ["furniture"]
   },
   {
-    "handle": "keypad",
+    "id": "keypad",
     "name": "Wall Keypad",
-    "description": "It's got the numbers 0-9 on it.",
     "location": "apartment_living_room",
-    "properties": {
-      "mobile": false,
-      "direction": "west"
-    },
+    "description": "It's got the numbers 0-9 on it.",
+    "properties": {"mobile": false, "direction": "west"},
     "code": 42,
     "tags": ["access point"]
   },
   {
-    "handle": "cabinet",
-    "alt_handle": "medicine cabinet",
+    "id": "cabinet",
     "name": "Medicine Cabinet",
-    "description": "A basic medicine cabinet.",
     "location": "bathroom",
+    "description": "A basic medicine cabinet.",
     "properties": {
       "container": true,
       "open": false,
       "transparent": false,
       "mobile": false
     },
-    "contents": ["toothpaste"],
+    "contains": ["toothpaste"],
     "tags": ["furniture"],
-    "responses": {
-      "examine": "Not much else to see."
-    }
+    "responses": {"examine": "Not much else to see."}
   },
   {
-    "handle": "toothpaste",
+    "id": "toothpaste",
     "name": "Toothpaste Tube",
-    "description": "A tube of toothpaste.",
     "location": "cabinet",
-    "properties": {
-      "letter": true,
-      "mobile": true
-    },
+    "description": "A tube of toothpaste.",
+    "properties": {"letter": true, "mobile": true},
     "tags": ["item", "joke"],
     "responses": {
       "examine": "The back of the tube says 'to be used in case of emergency monster gingivitis'."

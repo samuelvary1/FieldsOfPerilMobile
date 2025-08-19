@@ -19,8 +19,8 @@ import TopIcon from './TopIcon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {evaluateCommand, movePlayer} from '../engine/GameEngine';
 import MovementBar from './MovementBar';
-import items from '../data/items_normalized.json';
-import locations from '../data/locations_normalized.json';
+import items from '../data/items.json';
+import locations from '../data/locations.json';
 
 export default function GameUI({navigation}) {
   const [log, setLog] = useState([]);

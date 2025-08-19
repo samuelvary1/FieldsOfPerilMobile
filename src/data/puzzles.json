@@ -1,26 +1,18 @@
 [
   {
-    "id": "living_room_safe",
-    "type": "combination_lock",
-    "location": "apartment_living_room",
-    "description": "A safe with a 3-digit combination.",
-    "solution": "123",
-    "unlocks": ["safe_1"]
-  },
-  {
-    "id": "bedroom_lock",
+    "id": "apartment_entrance_keypad",
     "type": "keypad",
-    "location": "apartment_bedroom",
-    "description": "A keypad lock on the bedroom door.",
-    "solution": "0420",
-    "unlocks": ["apartment_bedroom"]
+    "location": "apartment_living_room",
+    "description": "A keypad by the apartment entrance. Enter the answer to the Ultimate Question of Life, the Universe, and Everything.",
+    "solution": "42",
+    "unlocks": ["3rd_floor_stairs"]
   },
   {
-    "id": "kitchen_cabinet_lock",
-    "type": "key",
-    "location": "apartment_kitchen",
-    "description": "A locked kitchen cabinet. Requires a key.",
-    "solution": "cabinet_key",
-    "unlocks": ["cabinet"]
+    "id": "fireplace_secret",
+    "type": "mechanism",
+    "location": "apartment_living_room",
+    "description": "A hidden mechanism in the fireplace. Solve to access the secret room.",
+    "solution": "pull candle-holder",
+    "unlocks": ["secret_room"]
   }
 ]
