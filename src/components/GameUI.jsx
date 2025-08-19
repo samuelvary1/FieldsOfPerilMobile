@@ -1,3 +1,4 @@
+// GameUI.jsx
 import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
@@ -8,19 +9,33 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {evaluateCommand} from '../engine/GameEngine';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {evaluateCommand, movePlayer} from '../engine/GameEngine';
 import items from '../data/items.json';
 import locations from '../data/locations.json';
 
-const GameUI = () => {
+const DIRS = ['north', 'south', 'east', 'west', 'up', 'down'];
+
+const directionIcons = {
+  north: 'arrow-up',
+  south: 'arrow-down',
+  east: 'arrow-right',
+  west: 'arrow-left',
+  up: 'chevron-up',
+  down: 'chevron-down',
+};
+
+export default function GameUI({navigation}) {
   const [log, setLog] = useState([]);
   const [input, setInput] = useState('');
   const [game, setGame] = useState(null);
   const [recentCommands, setRecentCommands] = useState([]);
   const scrollViewRef = useRef(null);
 
+  // Boot game
   useEffect(() => {
     const rooms = {};
     locations.forEach(room => {
@@ -28,8 +43,8 @@ const GameUI = () => {
     });
 
     const itemMap = {};
-    items.forEach(item => {
-      itemMap[item.handle] = item;
+    items.forEach(it => {
+      itemMap[it.handle] = it;
     });
 
     setGame({
@@ -37,18 +52,36 @@ const GameUI = () => {
       items: itemMap,
       player: {location: 'apartment_living_room', inventory: []},
       messages: {
-        help: 'Available commands: go, look, take, open, use, examine, read, inventory, quit, hint',
+        help: 'Available commands: look, take, drop, put, open, close, use, examine, read, inventory, help. Movement uses the arrow buttons.',
       },
     });
   }, []);
 
+  // Autosave whenever game changes
+  useEffect(() => {
+    if (!game) {
+      return;
+    }
+    const save = async () => {
+      try {
+        await AsyncStorage.setItem('fop_autosave', JSON.stringify(game));
+      } catch (e) {
+        console.log('autosave failed', e);
+      }
+    };
+    save();
+  }, [game]);
+
+  const appendLog = (...lines) => {
+    setLog(prev => [...prev, ...lines]);
+  };
+
   const handleCommand = cmd => {
-    console.log('handleCommand received:', cmd);
     if (!cmd.trim() || !game) {
       return;
     }
     const response = evaluateCommand(cmd.trim(), game, setGame);
-    setLog(prev => [...prev, `> ${cmd}`, response]);
+    appendLog(`> ${cmd}`, response);
     setRecentCommands(prev =>
       [cmd, ...prev.filter(c => c !== cmd)].slice(0, 5),
     );
@@ -57,24 +90,48 @@ const GameUI = () => {
 
   const handleSubmit = () => handleCommand(input);
 
+  const handleMove = dirWord => {
+    if (!game) {
+      return;
+    }
+    const result = movePlayer(dirWord, game, setGame);
+    appendLog(`> move ${dirWord}`, result);
+  };
+
+  const loadAutosave = async () => {
+    try {
+      const raw = await AsyncStorage.getItem('fop_autosave');
+      if (!raw) {
+        return Alert.alert('No autosave found');
+      }
+      const parsed = JSON.parse(raw);
+      setGame(parsed);
+      appendLog('Loaded autosave.');
+    } catch (e) {
+      Alert.alert('Load failed', String(e));
+    }
+  };
+
+  const openSaveLoad = () => {
+    if (navigation && typeof navigation.navigate === 'function') {
+      navigation.navigate('SaveLoad', {
+        onLoad: loadedGame => setGame(loadedGame),
+        getGame: () => game,
+      });
+    } else {
+      loadAutosave();
+    }
+  };
+
   if (!game) {
     return <Text style={styles.loading}>Loading...</Text>;
   }
 
   const currentRoom = game.rooms[game.player.location];
-  const directions = Object.keys(currentRoom.rooms || {});
+  const exits = new Set(Object.keys(currentRoom.rooms || {}));
   const initialDesc = !currentRoom.been_before
     ? currentRoom.first_time_message
     : currentRoom.header;
-
-  const directionIcons = {
-    north: 'arrow-up',
-    south: 'arrow-down',
-    east: 'arrow-right',
-    west: 'arrow-left',
-    up: 'chevron-up',
-    down: 'chevron-down',
-  };
 
   return (
     <KeyboardAvoidingView
@@ -86,7 +143,7 @@ const GameUI = () => {
         onContentSizeChange={() =>
           scrollViewRef.current?.scrollToEnd({animated: true})
         }>
-        <Text style={styles.text}>{initialDesc}</Text>
+        {!!initialDesc && <Text style={styles.text}>{initialDesc}</Text>}
         {log.map((line, index) => (
           <Text key={index} style={styles.text}>
             {line}
@@ -94,31 +151,73 @@ const GameUI = () => {
         ))}
       </ScrollView>
 
+      {/* Movement */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Movement:</Text>
-        <View style={styles.buttonRow}>
-          {directions.map(dir => {
-            console.log('Rendering direction button for:', dir); // ✅ Add this
-            return (
-              <TouchableOpacity
-                key={dir}
-                style={styles.buttonIcon}
-                onPress={() => handleCommand(`go ${dir}`)}>
-                <Icon
-                  name={directionIcons[dir] || 'arrows'}
-                  size={16}
-                  color="#fff"
-                />
-                <Text style={styles.buttonText}>{dir.toUpperCase()}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        <Text style={styles.sectionTitle}>Movement</Text>
+        <View style={styles.moveGrid}>
+          {/* Row 1: Up */}
+          <View style={styles.centerRow}>
+            <MoveButton
+              label="UP"
+              icon={directionIcons.up}
+              enabled={exits.has('up')}
+              onPress={() => handleMove('up')}
+            />
+          </View>
+
+          {/* Row 2: North */}
+          <View style={styles.centerRow}>
+            <MoveButton
+              label="NORTH"
+              icon={directionIcons.north}
+              enabled={exits.has('north')}
+              onPress={() => handleMove('north')}
+            />
+          </View>
+
+          {/* Row 3: West East */}
+          <View style={styles.row}>
+            <MoveButton
+              label="WEST"
+              icon={directionIcons.west}
+              enabled={exits.has('west')}
+              onPress={() => handleMove('west')}
+            />
+            <View style={{width: 12}} />
+            <MoveButton
+              label="EAST"
+              icon={directionIcons.east}
+              enabled={exits.has('east')}
+              onPress={() => handleMove('east')}
+            />
+          </View>
+
+          {/* Row 4: South */}
+          <View style={styles.centerRow}>
+            <MoveButton
+              label="SOUTH"
+              icon={directionIcons.south}
+              enabled={exits.has('south')}
+              onPress={() => handleMove('south')}
+            />
+          </View>
+
+          {/* Row 5: Down */}
+          <View style={styles.centerRow}>
+            <MoveButton
+              label="DOWN"
+              icon={directionIcons.down}
+              enabled={exits.has('down')}
+              onPress={() => handleMove('down')}
+            />
+          </View>
         </View>
       </View>
 
+      {/* Items in room quick take */}
       {currentRoom.items?.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Items in Room:</Text>
+          <Text style={styles.sectionTitle}>Items in Room</Text>
           <View style={styles.buttonRow}>
             {currentRoom.items.map(item => (
               <TouchableOpacity
@@ -133,27 +232,36 @@ const GameUI = () => {
         </View>
       )}
 
+      {/* Inventory quick use and drop */}
       {game.player.inventory.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Inventory:</Text>
+          <Text style={styles.sectionTitle}>Inventory</Text>
           <View style={styles.buttonRow}>
             {game.player.inventory.map(item => (
-              <TouchableOpacity
-                key={item}
-                style={styles.buttonIcon}
-                onPress={() => handleCommand(`use ${item}`)}>
-                <Icon name="key" size={16} color="#fff" />
-                <Text style={styles.buttonText}>Use {item}</Text>
-              </TouchableOpacity>
+              <View key={item} style={styles.invPair}>
+                <TouchableOpacity
+                  style={styles.buttonIcon}
+                  onPress={() => handleCommand(`use ${item}`)}>
+                  <Icon name="key" size={16} color="#fff" />
+                  <Text style={styles.buttonText}>Use {item}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.buttonIconSecondary}
+                  onPress={() => handleCommand(`drop ${item}`)}>
+                  <Icon name="trash" size={16} color="#fff" />
+                  <Text style={styles.buttonText}>Drop {item}</Text>
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         </View>
       )}
 
+      {/* Actions */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Actions:</Text>
+        <Text style={styles.sectionTitle}>Actions</Text>
         <View style={styles.buttonRow}>
-          {['look', 'inventory', 'help', 'hint'].map(cmd => (
+          {['look', 'inventory', 'help'].map(cmd => (
             <TouchableOpacity
               key={cmd}
               style={styles.buttonIcon}
@@ -164,8 +272,6 @@ const GameUI = () => {
                     ? 'search'
                     : cmd === 'help'
                     ? 'question-circle'
-                    : cmd === 'hint'
-                    ? 'lightbulb-o'
                     : 'list'
                 }
                 size={16}
@@ -174,12 +280,19 @@ const GameUI = () => {
               <Text style={styles.buttonText}>{cmd.toUpperCase()}</Text>
             </TouchableOpacity>
           ))}
+
+          {/* Save and Load */}
+          <TouchableOpacity style={styles.buttonIcon} onPress={openSaveLoad}>
+            <Icon name="save" size={16} color="#fff" />
+            <Text style={styles.buttonText}>Save and Load</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
+      {/* Recent commands */}
       {recentCommands.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Commands:</Text>
+          <Text style={styles.sectionTitle}>Recent Commands</Text>
           <View style={styles.buttonRow}>
             {recentCommands.map(cmd => (
               <TouchableOpacity
@@ -193,6 +306,7 @@ const GameUI = () => {
         </View>
       )}
 
+      {/* Input */}
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
@@ -209,9 +323,19 @@ const GameUI = () => {
       </View>
     </KeyboardAvoidingView>
   );
-};
+}
 
-export default GameUI;
+function MoveButton({label, icon, enabled, onPress}) {
+  return (
+    <TouchableOpacity
+      disabled={!enabled}
+      style={[styles.buttonIcon, !enabled && styles.buttonIconDisabled]}
+      onPress={onPress}>
+      <Icon name={icon || 'arrows'} size={16} color="#fff" />
+      <Text style={styles.buttonText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -243,10 +367,29 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     marginTop: 8,
   },
+  moveGrid: {
+    gap: 6,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
   buttonRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+  },
+  invPair: {
+    flexDirection: 'row',
+    gap: 6,
+    marginRight: 6,
+    marginBottom: 6,
   },
   button: {
     backgroundColor: '#3e3e3e',
@@ -265,6 +408,19 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 6,
     marginBottom: 6,
+  },
+  buttonIconSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#5a3e3e',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  buttonIconDisabled: {
+    opacity: 0.3,
   },
   buttonText: {
     color: '#fff',

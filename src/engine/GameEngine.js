@@ -3,7 +3,6 @@ import Fuse from 'fuse.js';
 import get from 'lodash/get';
 import {createMachine, interpret} from 'xstate';
 
-// Dedicated movement keys
 export const DIR = {
   N: 'north',
   S: 'south',
@@ -13,7 +12,6 @@ export const DIR = {
   D: 'down',
 };
 
-// Optional phrase mapping if you still accept "go north" in text
 const directionAliases = {
   north: DIR.N,
   n: DIR.N,
@@ -35,8 +33,8 @@ const directionAliases = {
   climbdown: DIR.D,
 };
 
-// Shared helpers
 const normalize = w => (w?.endsWith('s') ? w.slice(0, -1) : w);
+const deepClone = obj => JSON.parse(JSON.stringify(obj));
 
 function makeItemSearch(game) {
   return new Fuse(Object.values(game.items), {
@@ -76,20 +74,17 @@ const aliasMap = {
   'pick up': 'take',
   inspect: 'examine',
   check: 'examine',
-  look: 'look',
-  talk: 'talk',
-  speak: 'talk',
-  use: 'use',
-  read: 'read',
-  open: 'open',
-  go: 'go', // optional compatibility
-  move: 'go', // optional compatibility
   i: 'inventory',
   l: 'look',
   h: 'help',
+  go: 'go',
+  move: 'go',
+  put: 'put',
+  drop: 'drop',
+  close: 'close',
 };
 
-// Simple dialogue example
+// tiny dialogue example kept as before
 function makeGuardService() {
   let output = '';
   const guardDialogue = createMachine({
@@ -115,7 +110,64 @@ function makeGuardService() {
   return {service, getOutput: () => output};
 }
 
-// Public movement API for your UI
+// location helpers
+function isInInventory(item, game) {
+  return game.player.inventory.includes(item.handle);
+}
+function isInCurrentRoom(item, game) {
+  return item.location === game.player.location;
+}
+function isContainerOpen(container) {
+  return (
+    Boolean(container.properties?.container) &&
+    Boolean(container.properties?.open)
+  );
+}
+function ensureArray(a) {
+  return Array.isArray(a) ? a : [];
+}
+
+// state mutation helpers
+function setWith(updater, setGame) {
+  setGame(prev => {
+    const next = deepClone(prev);
+    updater(next);
+    return next;
+  });
+}
+
+function addToInventory(itemHandle, game) {
+  if (!game.player.inventory.includes(itemHandle)) {
+    game.player.inventory.push(itemHandle);
+  }
+  game.items[itemHandle].location = 'inventory';
+}
+
+function removeFromInventory(itemHandle, game) {
+  game.player.inventory = game.player.inventory.filter(h => h !== itemHandle);
+}
+
+function putInRoom(itemHandle, roomKey, game) {
+  game.items[itemHandle].location = roomKey;
+}
+
+function putInContainer(itemHandle, containerHandle, game) {
+  const container = game.items[containerHandle];
+  container.contents = ensureArray(container.contents);
+  if (!container.contents.includes(itemHandle)) {
+    container.contents.push(itemHandle);
+  }
+  game.items[itemHandle].location = containerHandle; // parent pointer
+}
+
+function removeFromContainer(itemHandle, containerHandle, game) {
+  const container = game.items[containerHandle];
+  container.contents = ensureArray(container.contents).filter(
+    h => h !== itemHandle,
+  );
+}
+
+// public movement API
 export function movePlayer(dir, game, setGame) {
   const d = dir in DIR ? DIR[dir] : directionAliases[`${dir}`.toLowerCase()];
   if (!d) {
@@ -135,18 +187,17 @@ export function movePlayer(dir, game, setGame) {
   setGame(prev => ({
     ...prev,
     player: {...prev.player, location: nextKey},
-    rooms: {
-      ...prev.rooms,
-      [nextKey]: {...nextRoom, been_before: true},
-    },
+    rooms: {...prev.rooms, [nextKey]: {...nextRoom, been_before: true}},
   }));
 
-  return !nextRoom.been_before
+  const fresh = !nextRoom.been_before;
+  const roomText = fresh
     ? nextRoom.first_time_message || 'You enter a new place.'
     : nextRoom.header || 'You arrive.';
+  const desc = nextRoom.description ? `\n\n${nextRoom.description}` : '';
+  return roomText + desc;
 }
 
-// Optional guard to check movement without moving
 export function canMove(dir, game) {
   const d = dir in DIR ? DIR[dir] : directionAliases[`${dir}`.toLowerCase()];
   if (!d) {
@@ -156,7 +207,7 @@ export function canMove(dir, game) {
   return Boolean(currentRoom.rooms?.[d]);
 }
 
-// Text command parser, with movement stripped out
+// parser with drop and containers
 export function evaluateCommand(input, game, setGame) {
   const location = game.rooms[game.player.location];
   const fuse = makeItemSearch(game);
@@ -164,21 +215,33 @@ export function evaluateCommand(input, game, setGame) {
 
   const raw = `${input}`.toLowerCase().trim();
 
-  // If the player types a single direction, do not parse it here
   if (directionAliases[raw]) {
     return 'Use the movement keys to move.';
   }
 
-  // Tokenize simply and map first token through aliasMap
   const parts = raw.split(/\s+/);
   const mappedFirst = aliasMap[parts[0]] || parts[0];
   let command = mappedFirst;
   let rest = parts.slice(1).join(' ').trim();
 
-  // Support "use X on Y"
+  // parse common prepositions
+  // pattern A: take x from y
+  // pattern B: put x in y or put x into y
   let noun = '';
   let target = '';
-  if (rest.includes(' on ')) {
+  if (command === 'take' && rest.includes(' from ')) {
+    const [a, b] = rest.split(' from ');
+    noun = a.trim();
+    target = b.trim();
+  } else if (
+    command === 'put' &&
+    (rest.includes(' into ') || rest.includes(' in '))
+  ) {
+    const key = rest.includes(' into ') ? ' into ' : ' in ';
+    const [a, b] = rest.split(key);
+    noun = a.trim();
+    target = b.trim();
+  } else if (rest.includes(' on ')) {
     const [a, b] = rest.split(' on ');
     noun = a.trim();
     target = b.trim();
@@ -218,7 +281,7 @@ export function evaluateCommand(input, game, setGame) {
         if (!container.properties.open) {
           return `The ${container.handle} is closed.`;
         }
-        const contents = container.contents || [];
+        const contents = ensureArray(container.contents);
         if (contents.length === 0) {
           return `The ${container.handle} is empty.`;
         }
@@ -240,9 +303,149 @@ export function evaluateCommand(input, game, setGame) {
 
     case 'inventory': {
       const inv = game.player.inventory || [];
-      return inv.length
-        ? `You are carrying: ${inv.join(', ')}`
-        : 'You are not carrying anything.';
+      if (!inv.length) {
+        return 'You are not carrying anything.';
+      }
+      const list = inv.map(h => {
+        const it = game.items[h];
+        if (it?.properties?.container) {
+          const c = ensureArray(it.contents);
+          return `${it.name || it.handle} (${c.length} inside)`;
+        }
+        return it?.name || h;
+      });
+      return `You are carrying: ${list.join(', ')}`;
+    }
+
+    case 'open': {
+      const item = getItemByHandle(noun, game, fuse);
+      if (!item) {
+        return `You do not see a "${noun}" here.`;
+      }
+      if (!item.properties?.container) {
+        return performItemAction(noun, 'open');
+      }
+      if (item.properties.open) {
+        return `The ${item.handle} is already open.`;
+      }
+      setWith(next => {
+        next.items[item.handle].properties.open = true;
+      }, setGame);
+      return `You open the ${item.handle}.`;
+    }
+
+    case 'close': {
+      const item = getItemByHandle(noun, game, fuse);
+      if (!item) {
+        return `You do not see a "${noun}" here.`;
+      }
+      if (!item.properties?.container) {
+        return 'You cannot close that.';
+      }
+      if (!item.properties.open) {
+        return `The ${item.handle} is already closed.`;
+      }
+      setWith(next => {
+        next.items[item.handle].properties.open = false;
+      }, setGame);
+      return `You close the ${item.handle}.`;
+    }
+
+    case 'take': {
+      // take x from y
+      if (noun && target) {
+        const item = getItemByHandle(noun, game, fuse);
+        const container = getItemByHandle(target, game, fuse);
+        if (!item || !container) {
+          return `You cannot take ${noun} from ${target}.`;
+        }
+        if (!container.properties?.container) {
+          return `The ${container.handle} is not a container.`;
+        }
+        if (!isContainerOpen(container)) {
+          return `The ${container.handle} is closed.`;
+        }
+        if (!ensureArray(container.contents).includes(item.handle)) {
+          return `There is no ${item.handle} in the ${container.handle}.`;
+        }
+        if (get(item, 'properties.mobile') === false) {
+          return 'That thing will not budge.';
+        }
+        setWith(next => {
+          removeFromContainer(item.handle, container.handle, next);
+          addToInventory(item.handle, next);
+        }, setGame);
+        return `You take the ${item.handle} from the ${container.handle}.`;
+      }
+
+      // take x from room or ground
+      const item = getItemByHandle(noun, game, fuse);
+      if (!item) {
+        return `You do not see a "${noun}" here.`;
+      }
+      if (!isInCurrentRoom(item, game)) {
+        if (isInInventory(item, game)) {
+          return `You already have the ${item.handle}.`;
+        }
+        return 'You cannot reach that here.';
+      }
+      if (get(item, 'properties.mobile') === false) {
+        return 'That thing will not budge.';
+      }
+      setWith(next => {
+        addToInventory(item.handle, next);
+      }, setGame);
+      return `You take the ${item.handle}.`;
+    }
+
+    case 'drop': {
+      const item = getItemByHandle(noun, game, fuse);
+      if (!item) {
+        return `You are not carrying a "${noun}".`;
+      }
+      if (!isInInventory(item, game)) {
+        return `You are not carrying the ${item.handle}.`;
+      }
+      setWith(next => {
+        removeFromInventory(item.handle, next);
+        putInRoom(item.handle, next.player.location, next);
+      }, setGame);
+      return `You drop the ${item.handle}.`;
+    }
+
+    case 'put': {
+      // put x in y
+      const item = getItemByHandle(noun, game, fuse);
+      const container = getItemByHandle(target, game, fuse);
+      if (!item || !container) {
+        return `You cannot put ${noun} in ${target}.`;
+      }
+      if (!isInInventory(item, game)) {
+        return `You need to be holding the ${item.handle}.`;
+      }
+      if (!container.properties?.container) {
+        return `The ${container.handle} is not a container.`;
+      }
+      // container can be in room or in inventory
+      const containerHere =
+        isInCurrentRoom(container, game) || isInInventory(container, game);
+      if (!containerHere) {
+        return `You do not see a ${container.handle} here.`;
+      }
+      if (!isContainerOpen(container)) {
+        return `The ${container.handle} is closed.`;
+      }
+      if (
+        container.properties?.capacity &&
+        ensureArray(container.contents).length >= container.properties.capacity
+      ) {
+        return `The ${container.handle} is full.`;
+      }
+      setWith(next => {
+        removeFromInventory(item.handle, next);
+        putInContainer(item.handle, container.handle, next);
+      }, setGame);
+      return `You put the ${item.handle} in the ${container.handle}.`;
     }
 
     case 'use': {
@@ -252,7 +455,6 @@ export function evaluateCommand(input, game, setGame) {
         if (!item || !targetItem) {
           return `You cannot use ${noun} on ${target}.`;
         }
-
         if (
           item.tags?.includes('key') &&
           targetItem.tags?.includes('access point') &&
@@ -260,7 +462,9 @@ export function evaluateCommand(input, game, setGame) {
           targetItem.code &&
           item.code === targetItem.code
         ) {
-          targetItem.properties.locked = false;
+          setWith(next => {
+            next.items[targetItem.handle].properties.locked = false;
+          }, setGame);
           return `You unlock the ${targetItem.handle} with the ${item.handle}.`;
         }
         return 'Nothing happens.';
@@ -282,7 +486,7 @@ export function evaluateCommand(input, game, setGame) {
       return performItemAction(noun, 'talk');
     }
 
-    case 'open':
+    case 'open': // already handled above
     case 'read':
     case 'examine': {
       if (!noun) {
@@ -291,25 +495,7 @@ export function evaluateCommand(input, game, setGame) {
       return performItemAction(noun, command);
     }
 
-    case 'take': {
-      const item = getItemByHandle(noun, game, fuse);
-      if (!item) {
-        return `You do not see a "${noun}" here.`;
-      }
-      if (!item.properties?.mobile) {
-        return 'That thing will not budge.';
-      }
-      if ((game.player.inventory || []).includes(item.handle)) {
-        return `You already have the ${item.handle}.`;
-      }
-      // mutate in place then reflect in setGame if you prefer immutability
-      game.player.inventory.push(item.handle);
-      item.location = 'inventory';
-      return `You take the ${item.handle}.`;
-    }
-
     case 'go': {
-      // Optional compatibility: allow "go north" to pass to movement API
       const d = directionAliases[noun];
       if (!d) {
         return 'Use the movement keys to move.';
