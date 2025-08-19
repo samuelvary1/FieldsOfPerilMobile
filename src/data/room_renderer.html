@@ -481,7 +481,7 @@
             if (items.length) { lines.push('<b>Items:</b>'); items.forEach(i => lines.push('• ' + escapeHtml(i))); } else { lines.push('<i>No items in this room</i>'); }
             tooltip.innerHTML = `<strong>${escapeHtml(title)}</strong><br/>` + lines.join('<br/>');
             tooltip.style.left = (ev.clientX + 12) + 'px';
-            tooltip.style.top = (ev.clientY + 12) + 'px';
+            tooltip.style.top = '40px'; // Always near the top
             tooltip.style.opacity = 1;
           }
           function hideTip(){ tooltip.style.opacity = 0; }

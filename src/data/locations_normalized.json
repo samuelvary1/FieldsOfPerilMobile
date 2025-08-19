@@ -4,70 +4,13 @@
     "header": "Apartment Living Room",
     "title": "apartment_living_room",
     "first_time_message": "You wake up to find yourself in a seemingly abandoned apartment. You see a small wooden chest, an old hunting rifle, and what appears to be a box for stationery on a desk in the corner",
-    "description": "That rifle will probably come in handy, and you should check that box on the desk for any helpful correspondence! There's also a chest standing in one corner.",
+    "description": "That rifle will probably come in handy, and you should check that box on the desk for any helpful correspondence!\nThere's also a chest standing in one corner.",
     "details": {"phrase": "You spot a keypad by the apartment entrance."},
     "rooms": {
       "west": "3rd_floor_stairs",
       "east": "secret_room",
       "south": "bathroom"
-    },
-    "access_points": {
-      "west": {"locked": true, "puzzle": "apartment_entrance_keypad"}
-    },
-    "items": [
-      "rifle",
-      "box",
-      "wooden_chest",
-      "bookcase",
-      "fireplace",
-      "keypad"
-    ],
-    "starting_location": true
-  },
-  {
-    "id": "3rd_floor_stairs",
-    "header": "3rd Floor Stairs",
-    "title": "3rd_floor_stairs",
-    "first_time_message": "You step out into the stairwell. The air is thick with dust.",
-    "description": "A narrow stairwell with creaky steps. The apartment is to the east.",
-    "details": {"phrase": "You hear faint noises from below."},
-    "rooms": {"east": "apartment_living_room", "down": "lobby"}
-  },
-  {
-    "id": "lobby",
-    "header": "Lobby",
-    "title": "lobby",
-    "first_time_message": "You reach the lobby. It's eerily quiet.",
-    "description": "A small lobby with mailboxes lining the wall.",
-    "details": {"phrase": "A single letter sits in one of the mailboxes."},
-    "rooms": {"up": "3rd_floor_stairs", "south": "street"}
-  },
-  {
-    "id": "street",
-    "header": "Street",
-    "title": "street",
-    "first_time_message": "You step out onto the street for the first time.",
-    "description": "The street is deserted, with debris scattered everywhere.",
-    "details": {"phrase": "You see a burned-out car nearby."},
-    "rooms": {"north": "lobby", "east": "alley"}
-  },
-  {
-    "id": "alley",
-    "header": "Alley",
-    "title": "alley",
-    "first_time_message": "You enter a narrow alley between buildings.",
-    "description": "The alley is dark and smells of garbage.",
-    "details": {"phrase": "A stray cat darts past you."},
-    "rooms": {"west": "street", "north": "behind_apartment_building"}
-  },
-  {
-    "id": "behind_apartment_building",
-    "header": "Behind Apartment Building",
-    "title": "behind_apartment_building",
-    "first_time_message": "behind apartment first time message goes here.",
-    "description": "you find yourself in a cramped alley directly behind the apartment building you started out in.",
-    "details": {"phrase": "this place is weird."},
-    "rooms": {"north": "bombed_alley", "south": "alley"}
+    }
   },
   {
     "id": "bathroom",
@@ -76,56 +19,301 @@
     "first_time_message": "You step into the bathroom and glance around. Dust covers the mirror, and the pipes are caked with rust. You catch sight of yourself in the glass, and are frightened by the hollow look in your eyes.",
     "description": "Ornate tiles cover the floor. There is a medicine cabinet over the sink.",
     "details": {"phrase": "Not much else to see right now.."},
-    "rooms": {"north": "apartment_living_room"},
-    "items": ["cabinet"]
+    "rooms": {"north": "apartment_living_room"}
   },
   {
-    "id": "bombed_alley",
-    "header": "Bombed Alley",
-    "title": "bombed_alley",
-    "first_time_message": "A cinder block almost falls on your head!",
-    "description": "there's some old scaffolding off to the north side of the alley.",
-    "details": {
-      "phrase": "You think you see a way to safely climb up the scaffolding."
-    },
+    "id": "secret_room",
+    "header": "Secret Room",
+    "title": "secret_room",
+    "first_time_message": "You pull on the candle-holder above the mantle and watch as a small door in the fireplace slides open. You step through.",
+    "description": "It appears to be some kind of secret meeting room. Various posters supporting the revolution decorate the walls.",
+    "details": {"phrase": "One poster says 'Big Brother is always watching'"},
     "rooms": {
-      "west": "clearing",
-      "up": "scaffolding",
-      "east": "behind_apartment_building"
+      "west": "apartment_living_room",
+      "north": "gallery",
+      "south": "intel_room"
     }
   },
   {
-    "id": "scaffolding",
-    "header": "Scaffolding",
-    "title": "scaffolding",
-    "first_time_message": "You climb up the scaffolding, being very careful",
-    "description": "Some very important objects up here.",
-    "details": {"phrase": "not much else to see right now."},
-    "rooms": {"down": "bombed_alley"}
+    "id": "intel_room",
+    "header": "Intel Room",
+    "title": "intel_room",
+    "first_time_message": "You solve TBD puzzle and the secret passageway reveals itself, allowing you to step into a room full of documents and equipment.",
+    "description": "The room seems full of paperwork and specialized equipment, possibly for codebreaking. Most of it looks too heavy to move but there are some interesting pieces of paper on a metal desk against the southern wall.",
+    "details": {"phrase": "Not much else to see right now.."},
+    "rooms": {"north": "secret_room"}
   },
   {
-    "id": "clearing",
-    "header": "Clearing (East of Scrapyard)",
-    "title": "clearing",
-    "first_time_message": "first time message for clearing east of scrapyard.",
-    "description": "pretty empty space.",
+    "id": "gallery",
+    "header": "The Gallery",
+    "title": "gallery",
+    "first_time_message": "You step into the gallery and draw a sharp breath as you look at all the paintings and photographs on display.",
+    "description": "There are a ton of photographs and portraits of heroes from the war and heroic moments and such.",
+    "details": {"phrase": "You see a portrait of Alexander Matrosov."},
+    "rooms": {"south": "secret_room"}
+  },
+  {
+    "id": "3rd_floor_stairs",
+    "header": "Third Floor Stairs",
+    "title": "3rd_floor_stairs",
+    "first_time_message": "You emerge into a gloomy stairwell. The stairs lead down into shadows and darkness.",
+    "description": "Several of the stairs look like they can barely support a person's weight.",
+    "details": {"phrase": "You see a way to hop over the stairs safely."},
+    "rooms": {"east": "apartment_living_room", "down": "2nd_floor_stairs"}
+  },
+  {
+    "id": "2nd_floor_stairs",
+    "header": "Second Floor Stairs",
+    "title": "2nd_floor_stairs",
+    "first_time_message": "You arrive on the second floor of the old apartment building.",
+    "description": "You're standing on the second floor of the apartment building.",
     "details": {
-      "phrase": "you look to the south and can see what looks like a bunker. The old concrete pillbox has ivy creeping all over it."
+      "phrase": "Some old lamps flicker in the hallway. It's a wonder there's still any power here."
     },
-    "rooms": {"east": "bombed_alley", "west": "scrapyard"}
+    "rooms": {"up": "3rd_floor_stairs", "down": "1st_floor_stairs"}
   },
   {
-    "id": "scrapyard",
-    "header": "Scrapyard",
-    "title": "scrapyard",
-    "first_time_message": "First time message for entering the scrapyard. A weird little kid runs up to you and gives you something, then disappears.",
-    "description": "This place probably contains some useful items.",
-    "details": {"phrase": "detailed description of scrapyard to go here..."},
+    "id": "1st_floor_stairs",
+    "header": "First Floor Stairs",
+    "title": "1st_floor_stairs",
+    "first_time_message": "You arrive on the first floor of the old apartment building.",
+    "description": "you are standing in the entranceway on the first floor of the apartment building",
+    "details": {"phrase": "not much else to see here..."},
     "rooms": {
-      "east": "clearing",
-      "south": "abandoned_outpost",
+      "up": "2nd_floor_stairs",
+      "west": "the_street",
+      "down": "cellar_1"
+    }
+  },
+  {
+    "id": "cellar_1",
+    "header": "Cellar",
+    "title": "cellar_1",
+    "first_time_message": "First time message stepping into the cellar of the apartment building.",
+    "description": "Lotta cobwebs down here. There's a heavy looking door built into the eastern wall.",
+    "details": {
+      "phrase": "looks like there's some sort of mechanical keypad on the heavy door."
+    },
+    "rooms": {"east": "vault_1", "up": "1st_floor_stairs"}
+  },
+  {
+    "id": "vault_1",
+    "header": "Apartment Building Vault Chamber",
+    "title": "vault_1",
+    "first_time_message": "You solve the keypad puzzle and enter the vault!",
+    "description": "description of the vault to go here.",
+    "details": {"phrase": "detailed description of the vault to go here."},
+    "rooms": {"west": "cellar_1"}
+  },
+  {
+    "id": "the_street",
+    "header": "Street, West of Apartment Building",
+    "title": "the_street",
+    "first_time_message": "The ruined streets of tbd city. The entrance to the apartment building lies to your east.",
+    "description": "Craters decorate the street.",
+    "details": {"phrase": "details of the street"},
+    "rooms": {
+      "north": "apartment_building_north",
+      "south": "apartment_building_south",
+      "east": "1st_floor_stairs"
+    }
+  },
+  {
+    "id": "apartment_building_north",
+    "header": "North of Apartment Building",
+    "title": "apartment_building_north",
+    "first_time_message": "You walk north on the street",
+    "description": "You are standing to the north of the apartment building.",
+    "details": {"phrase": "not much else to see right now.."},
+    "rooms": {
+      "north": "town_square",
+      "south": "the_street",
+      "west": "access_road"
+    }
+  },
+  {
+    "id": "town_square",
+    "header": "Town Square",
+    "title": "town_square",
+    "first_time_message": "First time message for entering the town square (possible sniper attack?)",
+    "description": "You're standing in the middle of what was probably once a very beautiful town square. A fountain seems to be the last intact remain of that architectural splendor.",
+    "details": {
+      "phrase": "seems like there are actually some valuable objects in the fountain.."
+    },
+    "rooms": {"north": "abandoned_outpost", "south": "apartment_building_north"}
+  },
+  {
+    "id": "abandoned_outpost",
+    "header": "Abandoned Outpost",
+    "title": "abandoned_outpost",
+    "first_time_message": "You step into a clearing where you spot a dead body slumped over a machine gun. Looks like this was a key roadblock at some point recently, but now it is abandoned.",
+    "description": "A dead machine gunner wearing a rebel uniform lies slumped over his weapon, which is mounted on a wall of sandbags. You can see a bunker to the east, although it looks pretty secure considering that fairly new-looking padlock on the door.",
+    "details": {
+      "phrase": "It looks like that body might have some useful stuff in its pockets. Not much else to see about the bunker. To the north you see a weird path leading off into some brush. Looks sketchy af. Another equally sketchy road (this one looks like it could be used for vehicles) stretches off to the west."
+    },
+    "rooms": {
+      "north": "scrapyard",
+      "south": "town_square",
+      "east": "bunker_1",
       "west": "corpse_road"
     }
+  },
+  {
+    "id": "bunker_1",
+    "header": "The Bunker",
+    "title": "bunker_1",
+    "first_time_message": "You finally force your way into the bunker (there's a TBD puzzle to get in here).",
+    "description": "An old bunker with a dead body slumped over a machine gun at the front window.",
+    "details": {"phrase": "More details about the bunker go here."},
+    "rooms": {"west": "abandoned_outpost"}
+  },
+  {
+    "id": "apartment_building_south",
+    "header": "South of Apartment Building",
+    "title": "apartment_building_south",
+    "first_time_message": "You step around to the south side of the apartment building for the first time. A dog with its leg blown off suddenly emerges from the shadows and begins to snarl at you.",
+    "description": "You are standing to the south of the apartment building. That dog looks hungry.",
+    "details": {
+      "phrase": "I would stay as far away from that dog as possible, if I were you."
+    },
+    "rooms": {"north": "the_street", "east": "alley", "west": "garden"}
+  },
+  {
+    "id": "alley",
+    "header": "Alley",
+    "title": "alley",
+    "first_time_message": "You find yourself in an alley kinda south of the apartment building.",
+    "description": "There's a ton of trash and stuff here.",
+    "details": {"phrase": "not much else to see right now..."},
+    "rooms": {
+      "east": "behind_apartment_building",
+      "west": "apartment_building_south"
+    }
+  },
+  {
+    "id": "garden",
+    "header": "Garden",
+    "title": "garden",
+    "first_time_message": "You push gently on a rusty metal gate, which creaks open to reveal a surprisingly lush garden.",
+    "description": "Grasshoppers buzz and flit from leaf to leaf. Something about this place gives you the creeps. There's no telling what might be hidden in all this foliage. Off to the west you see what appears to be some kind of dilapidated toolshed.\"",
+    "details": {
+      "phrase": "Is that a skeletal hand poking out of a flowerbed to the south?"
+    },
+    "rooms": {
+      "north": "access_road",
+      "east": "apartment_building_south",
+      "west": "abandoned_shed"
+    }
+  },
+  {
+    "id": "abandoned_shed",
+    "header": "Abandoned Garden Shed",
+    "title": "abandoned_shed",
+    "first_time_message": "You open the shed for the first time. It's pretty messy in here.",
+    "description": "You look around at the various implements and tools. A rug lies in the middle of the shed.",
+    "details": {"phrase": "That rug looks kind of crooked."},
+    "rooms": {"east": "garden", "down": "secret_bomb_shelter"}
+  },
+  {
+    "id": "secret_bomb_shelter",
+    "header": "Secret Bomb Shelter",
+    "title": "secret_bomb_shelter",
+    "first_time_message": "You pull the trapdoor - hard - and are just able to get it flipped over on the floor, allowing you to climb down inside a small, one-room bomb shelter.",
+    "description": "bomb shelter description goes here.",
+    "details": {"phrase": "bomb shelter details to go here."},
+    "rooms": {"up": "abandoned_shed"}
+  },
+  {
+    "id": "access_road",
+    "header": "Access Road",
+    "title": "access_road",
+    "first_time_message": "You find yourself on an access road. Off to your west you've spotted an imposing, medieval looking bell tower.",
+    "description": "It's just an access road. You see a few craters and some empty shell casings scattered around in the mud.",
+    "details": {"phrase": "not much else to see right now..."},
+    "rooms": {
+      "north": "corpse_road",
+      "south": "garden",
+      "east": "apartment_building_north",
+      "west": "bell_tower"
+    }
+  },
+  {
+    "id": "bell_tower",
+    "header": "Bell Tower Entry Hall",
+    "title": "bell_tower",
+    "first_time_message": "You enter the bell tower for the first time.",
+    "description": "You are standing in the entrance way. It is very quiet.",
+    "details": {
+      "phrase": "You gaze through a window on the northern wall. You can make out what appears to be a graveyard to the north of the bell tower."
+    },
+    "rooms": {"east": "access_road", "up": "boobytrap_room"}
+  },
+  {
+    "id": "boobytrap_room",
+    "header": "Boobytrap Room",
+    "title": "boobytrap_room",
+    "first_time_message": "[first time message] should probably have a certain trap go off if you haven't done something specific before this point.",
+    "description": "The room appears to be outfitted with a variety of deadly-looking traps.",
+    "details": {"phrase": "Detailed description of booby trap room."},
+    "rooms": {"up": "bell_chamber_a", "down": "bell_tower"}
+  },
+  {
+    "id": "bell_chamber_a",
+    "header": "Bell Chamber (East)",
+    "title": "bell_chamber_a",
+    "first_time_message": "First time message for bell chamber (located just below the sniper's nest).",
+    "description": "You see a ladder leading up into the belfry of the bell tower. There's also a rickety zipline leading out a window and down into the graveyard.",
+    "details": {
+      "phrase": "Possible clues here about the sniper nest just above you."
+    },
+    "rooms": {
+      "up": "snipers_nest",
+      "down": "boobytrap_room",
+      "west": "bell_chamber_b",
+      "east": "graveyard"
+    }
+  },
+  {
+    "id": "bell_chamber_b",
+    "header": "Bell Chamber (West)",
+    "title": "bell_chamber_b",
+    "first_time_message": "First time message for bell chamber west.",
+    "description": "Might be some important objects here.",
+    "details": {
+      "phrase": "Perhaps you spot some secret stairs leading down to the monk's quarters here."
+    },
+    "rooms": {"east": "bell_chamber_a", "down": "monks_quarters"}
+  },
+  {
+    "id": "snipers_nest",
+    "header": "Sniper's Nest",
+    "title": "snipers_nest",
+    "first_time_message": "Probably will be a confrontation with the sniper here depending on in-game action. I think he should probably take a shot at you when you step into the either the town square or the graveyard, too",
+    "description": "Description of sniper's nest. Possibly a body here.",
+    "details": {
+      "phrase": "Probably want to take some items off the sniper's body. Should bodies act like containers? Probably. Just cant open or close them or look 'in' them like other containers. Bodies should be a special container."
+    },
+    "rooms": {"down": "bell_chamber_a"}
+  },
+  {
+    "id": "monks_quarters",
+    "header": "Monk's Quarters",
+    "title": "monks_quarters",
+    "first_time_message": "Maybe something cool happens here like the candles suddenly go out and you hear a freaky voice and then they go back on again or something sort of scary and supernatural.",
+    "description": "The living quarters of a simple monk.",
+    "details": {"phrase": "That floorboard looks a little loose..."},
+    "rooms": {"up": "bell_chamber_b", "down": "rebel_war_room"}
+  },
+  {
+    "id": "rebel_war_room",
+    "header": "Rebel War Room",
+    "title": "rebel_war_room",
+    "first_time_message": "First time message for entering the war room.",
+    "description": "charts and maps decorate the walls. They were preparing for something big.",
+    "details": {
+      "phrase": "That hatch in the middle of the floor looks promising."
+    },
+    "rooms": {"up": "monks_quarters", "down": "tunnel_entrance"}
   },
   {
     "id": "corpse_road",
@@ -140,24 +328,6 @@
       "east": "abandoned_outpost",
       "west": "graveyard"
     }
-  },
-  {
-    "id": "abandoned_outpost",
-    "header": "Abandoned Outpost",
-    "title": "abandoned_outpost",
-    "first_time_message": "You step into the abandoned outpost for the first time.",
-    "description": "The outpost is in ruins, with sandbags and barbed wire everywhere.",
-    "details": {"phrase": "You see a rusted machine gun on a tripod."},
-    "rooms": {"west": "corpse_road", "north": "scrapyard"}
-  },
-  {
-    "id": "access_road",
-    "header": "Access Road",
-    "title": "access_road",
-    "first_time_message": "You walk down the access road for the first time.",
-    "description": "A cracked road leading to the outskirts of town.",
-    "details": {"phrase": "You see tire tracks in the dust."},
-    "rooms": {"north": "corpse_road"}
   },
   {
     "id": "graveyard",
@@ -242,15 +412,61 @@
     "rooms": {"west": "terror_room_c"}
   },
   {
-    "id": "rebel_war_room",
-    "header": "Rebel War Room",
-    "title": "rebel_war_room",
-    "first_time_message": "You enter the rebel war room for the first time.",
-    "description": "A large table dominates the center of the room, covered in maps and documents.",
+    "id": "scrapyard",
+    "header": "Scrapyard",
+    "title": "scrapyard",
+    "first_time_message": "First time message for entering the scrapyard. A weird little kid runs up to you and gives you something, then disappears.",
+    "description": "This place probably contains some useful items.",
+    "details": {"phrase": "detailed description of scrapyard to go here..."},
+    "rooms": {
+      "east": "clearing",
+      "south": "abandoned_outpost",
+      "west": "corpse_road"
+    }
+  },
+  {
+    "id": "clearing",
+    "header": "Clearing (East of Scrapyard)",
+    "title": "clearing",
+    "first_time_message": "first time message for clearing east of scrapyard.",
+    "description": "pretty empty space.",
     "details": {
-      "phrase": "That hatch in the middle of the floor looks promising."
+      "phrase": "you look to the south and can see what looks like a bunker. The old concrete pillbox has ivy creeping all over it."
     },
-    "rooms": {"up": "monks_quarters", "down": "tunnel_entrance"}
+    "rooms": {"east": "bombed_alley", "west": "scrapyard"}
+  },
+  {
+    "id": "bombed_alley",
+    "header": "Bombed Alley",
+    "title": "bombed_alley",
+    "first_time_message": "A cinder block almost falls on your head!",
+    "description": "there's some old scaffolding off to the north side of the alley.",
+    "details": {
+      "phrase": "You think you see a way to safely climb up the scaffolding."
+    },
+    "rooms": {
+      "west": "clearing",
+      "up": "scaffolding",
+      "east": "behind_apartment_building"
+    }
+  },
+  {
+    "id": "scaffolding",
+    "header": "Scaffolding",
+    "title": "scaffolding",
+    "first_time_message": "You climb up the scaffolding, being very careful",
+    "description": "Some very important objects up here.",
+    "details": {"phrase": "not much else to see right now."},
+    "rooms": {"down": "bombed_alley"}
+  },
+  {
+    "id": "behind_apartment_building",
+    "header": "Behind Apartment Building",
+    "title": "behind_apartment_building",
+    "first_time_message": "behind apartment first time message goes here.",
+    "description": "you find yourself in a cramped alley directly behind the apartment building you started out in.",
+    "details": {"phrase": "this place is weird."},
+    "rooms": {"north": "bombed_alley", "south": "alley"}
   },
   {
     "id": "tunnel_entrance",
